@@ -17,12 +17,6 @@ void GameScene::Init()
 
 	objList.clear();
 
-	// ===================================================
-	// ★マップチップ方式でのステージ生成
-	// ===================================================
-
-	// 0: 空白, 1: 壁
-	// 画面サイズ 1280x720 を 64x64 のチップで割ると 20列 x 11行 くらいになります
 	const int MAP_W = 20;
 	const int MAP_H = 12;
 	const float CHIP_SIZE = 64.0f;
@@ -61,13 +55,11 @@ void GameScene::Init()
 	}
 	else
 	{
-		// ★追加：もし「stage3.txt」などが存在しなかった場合（＝全ステージクリア！）
-		// 全クリ用のシーン（またはタイトル画面など）へ飛ばす
-		SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score)); // ※仮でGameOverにしています
+		SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score));
 		return;
 	}
 
-	// ① 敵を生成する時にプレイヤーの情報が必要なので、先にプレイヤーを作ってリストに入れる
+
 	m_player = std::make_shared<Player>();
 	objList.push_back(m_player);
 
@@ -108,7 +100,6 @@ void GameScene::Init()
 
 	m_shootTimer = 0;
 
-	// ★追加：最初は 120フレーム（約2秒）待ってから次の敵を出す
 	m_spawnTimer = 120;
 
 	m_score = 0;
@@ -119,51 +110,28 @@ void GameScene::Update()
 	m_shootTimer--;
 
 	m_spawnTimer--;
-	//if (m_spawnTimer <= 0)
-	//{
-	//	// 画面内のランダムな位置（幅1200, 高さ600くらいの範囲）
-	//	float randX = (float)(rand() % 1200 - 600); // -600 ～ +600
-	//	float randY = (float)(rand() % 600 - 300);  // -300 ～ +300
-
-	//	// 新しい敵を作成してリストに追加
-	//	std::shared_ptr<Enemy> newEnemy = std::make_shared<Enemy>(randX, randY, &m_enemyTex);
-	//	objList.push_back(newEnemy);
-
-	//	// 次の出現までの時間をセット
-	//	m_spawnTimer = 60 + (rand() % 120);
-	//}
 
 	// --- プレイヤーの発射 ---
 	if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)
 	{
 		if (m_shootTimer <= 0)
 		{
-			// ② マウスのスクリーン座標（PC画面上の位置）を取得
 			POINT mousePos;
 			GetCursorPos(&mousePos);
 
-			// PCの画面座標から、ゲームウィンドウ内の座標に変換
-			// ※ APP.m_window のHWND（ウィンドウハンドル）を取得する関数は、
-			// フレームワークに合わせて GetHWND() などを指定してください。
 			ScreenToClient(APP.m_window.GetWndHandle(), &mousePos);
 
-			// ③ 左上(0,0)基準のマウス座標を、画面中央(0,0)のゲーム空間座標に変換
-			// （Y座標は「上がプラス」になるようにマイナスを掛けて反転させます）
 			float gameMouseX = (float)mousePos.x - (SCREEN_WIDTH / 2.0f);
 			float gameMouseY = -((float)mousePos.y - (SCREEN_HEIGHT / 2.0f));
 
-			// ④ プレイヤーからマウスカーソルへの距離（ベクトル）を計算
 			float dx = gameMouseX - m_player->pos.x;
 			float dy = gameMouseY - m_player->pos.y;
 
-			// ⑤ atan2を使って、マウスの方向を向くための角度（ラジアン）を計算
-			// （※現在のBulletクラスの移動計算式に合わせて、dxをマイナスにしています）
 			float rad = atan2(-dx, dy);
 
-			// ラジアンから度数法（Degree）に変換
+
 			float degree = rad * (180.0f / 3.14159265f);
 
-			// ⑥ 計算した角度を渡して弾を生成
 			objList.push_back(std::make_shared<Bullet>(
 				m_player->pos.x,
 				m_player->pos.y,
@@ -172,7 +140,7 @@ void GameScene::Update()
 				false
 			));
 
-			// クールダウンをセット（例：15フレーム）
+
 			m_shootTimer = 15;
 		}
 	}
@@ -183,42 +151,36 @@ void GameScene::Update()
 	}
 
 	// --- 全オブジェクト更新 & 敵の発射チェック ---
-	// ① 新しく生まれるオブジェクト（弾など）を一時的に入れるリスト
 	std::vector<std::shared_ptr<GameObject>> newObjects;
 
 	// 全オブジェクトの更新
 	for (auto& obj : objList)
 	{
-		obj->Update(); // それぞれのUpdateを実行
+		obj->Update();
 
-		// ② もし現在のオブジェクトが「敵 (Enemy)」だったら？
 		if (auto enemy = std::dynamic_pointer_cast<Enemy>(obj))
 		{
-			// 敵が「弾を撃ちたい」状態になっているかチェック
+
 			if (enemy->wantToShoot)
 			{
-				// 敵の座標と角度で、新しい弾を生成（最後を true にすることで敵の弾になる！）
 				std::shared_ptr<Bullet> bullet = std::make_shared<Bullet>(
 					enemy->pos.x, enemy->pos.y, enemy->m_angle, &m_bulletTex, true
 				);
 
-				// 一時リストに弾を追加
 				newObjects.push_back(bullet);
 
-				// 撃ち終わったのでフラグを戻す
 				enemy->wantToShoot = false;
 			}
 		}
 	}
 
-	// ③ 一時リストに入っている新しい弾を、メインのリストにまとめて追加！
 	for (auto& newObj : newObjects)
 	{
 		objList.push_back(newObj);
 	}
 
 
-	// --- 当たり判定 ---
+
 	for (auto& objA : objList)
 	{
 		for (auto& objB : objList)
@@ -230,7 +192,6 @@ void GameScene::Update()
 
 			if (bullet)
 			{
-				// 味方の弾 vs 敵
 				if (bullet->isEnemy == false)
 				{
 					auto enemy = std::dynamic_pointer_cast<Enemy>(objB);
@@ -245,7 +206,6 @@ void GameScene::Update()
 					}
 				}
 
-				// 敵の弾 vs プレイヤー
 				if (bullet->isEnemy == true)
 				{
 					auto player = std::dynamic_pointer_cast<Player>(objB);
@@ -255,8 +215,6 @@ void GameScene::Update()
 							bullet->isDead = true;
 							player->isDead = true;
 
-							// ★ここでシーン切り替え！
-							// cppファイルなら安全に切り替えができます
 							SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score));
 							return;
 						}

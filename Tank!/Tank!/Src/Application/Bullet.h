@@ -55,8 +55,8 @@ public:
 		{
 			if (m_bounceCount < MAX_BOUNCE)
 			{
-				m_moveX = -m_moveX; // 進行方向を反転！
-				m_bounceCount++;    // 反射回数を増やす
+				m_moveX = -m_moveX;
+				m_bounceCount++;
 
 				// 壁にめり込まないように位置を補正
 				if (pos.x < SCREEN_LEFT) pos.x = SCREEN_LEFT;
@@ -76,7 +76,7 @@ public:
 		{
 			if (m_bounceCount < MAX_BOUNCE)
 			{
-				m_moveY = -m_moveY; // 進行方向を反転！
+				m_moveY = -m_moveY;
 				m_bounceCount++;
 
 				// 壁にめり込まないように位置を補正

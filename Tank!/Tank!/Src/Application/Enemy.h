@@ -54,8 +54,6 @@ public:
 			float dx = m_targetPlayer->pos.x - pos.x;
 			float dy = m_targetPlayer->pos.y - pos.y;
 
-			// アークタンジェント（atan2）を使って角度を割り出す！
-			// ※現在の移動計算（-sin, cos）に合わせるための計算式です
 			m_angle = DirectX::XMConvertToDegrees(atan2(-dx, dy));
 		}
 
@@ -79,7 +77,7 @@ public:
 		}
 		else if (m_type == EnemyType::Brown)
 		{
-			// 茶色（Brown）は動かないので移動処理はナシ！
+			
 		}
 
 
@@ -107,8 +105,8 @@ public:
 		m_shootCooldown--;
 		if (m_shootCooldown <= 0)
 		{
-			wantToShoot = true;  // 「弾を撃ちたい！」とGameSceneにアピールする
-			m_shootCooldown = 120; // 次に撃つまでのフレーム数（60fpsなら2秒）
+			wantToShoot = true;
+			m_shootCooldown = 120;
 		}
 
 	}
