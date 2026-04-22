@@ -1,0 +1,432 @@
+#include "GameScene.h"
+#include "GameOverScene.h"
+#include "SceneManager.h"
+#include <ctime>
+
+#include<fstream>
+#include<string>
+
+void GameScene::Init()
+{
+	
+	srand((unsigned int)time(NULL));
+
+	m_bulletTex.Load("Texture/Player/bullet.png");
+	m_enemyTex.Load("Texture/Enemy/chara.png");
+	m_wallTex.Load("Texture/Map/wall.png");
+
+	objList.clear();
+
+	// ===================================================
+	// ★マップチップ方式でのステージ生成
+	// ===================================================
+
+	// 0: 空白, 1: 壁
+	// 画面サイズ 1280x720 を 64x64 のチップで割ると 20列 x 11行 くらいになります
+	const int MAP_W = 20;
+	const int MAP_H = 12;
+	const float CHIP_SIZE = 64.0f;
+	const float chipshiftdown = 24.0f;
+
+	// ① まず配列を全部 0（空白）で作っておく
+	int stageData[MAP_H][MAP_W] = { 0 };
+
+	std::string fileName = "Texture/Map/stage" + std::to_string(m_currentStage) + ".txt";
+
+	// ② テキストファイルを開く
+	std::ifstream file(fileName);
+
+	// ③ ファイルがちゃんと開けた場合のみ読み込む
+	if (file.is_open())
+	{
+		std::string line;
+		int y = 0;
+
+		// ファイルから1行ずつ文字を読み込む
+		while (std::getline(file, line) && y < MAP_H)
+		{
+			// 1行の中の文字を左から順番にチェック
+			for (int x = 0; x < MAP_W && x < line.length(); x++)
+			{
+				// 文字に応じて配列に数字を入れる
+				if (line[x] == '1') stageData[y][x] = 1; // 壁
+				else if (line[x] == '2') stageData[y][x] = 2; // プレイヤー
+				else if (line[x] == '3') stageData[y][x] = 3; // 敵（茶）
+				else if (line[x] == '4') stageData[y][x] = 4; // 敵（灰）
+				// '0' の場合はそのまま（配列の初期値が0なので）
+			}
+			y++; // 次の行へ
+		}
+		file.close(); // 読み終わったらファイルを閉じる
+	}
+	else
+	{
+		// ★追加：もし「stage3.txt」などが存在しなかった場合（＝全ステージクリア！）
+		// 全クリ用のシーン（またはタイトル画面など）へ飛ばす
+		SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score)); // ※仮でGameOverにしています
+		return;
+	}
+
+	// ① 敵を生成する時にプレイヤーの情報が必要なので、先にプレイヤーを作ってリストに入れる
+	m_player = std::make_shared<Player>();
+	objList.push_back(m_player);
+
+	// 二次元配列をループして、壁・プレイヤー・敵を配置
+	for (int y = 0; y < MAP_H; y++) {
+		for (int x = 0; x < MAP_W; x++) {
+
+			// 配列のインデックスから画面座標(x, y)を計算
+			float posX = SCREEN_LEFT + (x * CHIP_SIZE) + (CHIP_SIZE / 2.0f);
+			float posY = SCREEN_TOP - (y * CHIP_SIZE) - (CHIP_SIZE / 2.0f) + chipshiftdown;
+
+			if (stageData[y][x] == 1) {
+				// 1: 壁の生成
+				objList.push_back(std::make_shared<Wall>(posX, posY, &m_wallTex));
+			}
+			else if (stageData[y][x] == 2) {
+				// 2: プレイヤーの初期位置をマップデータに合わせて移動させる
+				m_player->pos = { posX, posY };
+			}
+			else if (stageData[y][x] == 3) {
+				// 3: 茶色戦車の生成（動かない）
+				objList.push_back(std::make_shared<Enemy>(posX, posY, &m_enemyTex, EnemyType::Brown, m_player));
+			}
+			else if (stageData[y][x] == 4) {
+				// 4: 灰色戦車の生成（動く）
+				objList.push_back(std::make_shared<Enemy>(posX, posY, &m_enemyTex, EnemyType::Ash, m_player));
+			}
+		}
+	}
+
+	// 茶色の敵を出現させる場合（動かない）
+	std::shared_ptr<Enemy> enemy1 = std::make_shared<Enemy>(100, 100, &m_enemyTex, EnemyType::Brown, m_player);
+	objList.push_back(enemy1);
+
+	// 灰色の敵を出現させる場合（ウロウロ動く）
+	std::shared_ptr<Enemy> enemy2 = std::make_shared<Enemy>(-200, 200, &m_enemyTex, EnemyType::Ash, m_player);
+	objList.push_back(enemy2);
+
+	m_shootTimer = 0;
+
+	// ★追加：最初は 120フレーム（約2秒）待ってから次の敵を出す
+	m_spawnTimer = 120;
+
+	m_score = 0;
+}
+
+void GameScene::Update()
+{
+	m_shootTimer--;
+
+	m_spawnTimer--;
+	//if (m_spawnTimer <= 0)
+	//{
+	//	// 画面内のランダムな位置（幅1200, 高さ600くらいの範囲）
+	//	float randX = (float)(rand() % 1200 - 600); // -600 ～ +600
+	//	float randY = (float)(rand() % 600 - 300);  // -300 ～ +300
+
+	//	// 新しい敵を作成してリストに追加
+	//	std::shared_ptr<Enemy> newEnemy = std::make_shared<Enemy>(randX, randY, &m_enemyTex);
+	//	objList.push_back(newEnemy);
+
+	//	// 次の出現までの時間をセット
+	//	m_spawnTimer = 60 + (rand() % 120);
+	//}
+
+	// --- プレイヤーの発射 ---
+	if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)
+	{
+		if (m_shootTimer <= 0)
+		{
+			// ② マウスのスクリーン座標（PC画面上の位置）を取得
+			POINT mousePos;
+			GetCursorPos(&mousePos);
+
+			// PCの画面座標から、ゲームウィンドウ内の座標に変換
+			// ※ APP.m_window のHWND（ウィンドウハンドル）を取得する関数は、
+			// フレームワークに合わせて GetHWND() などを指定してください。
+			ScreenToClient(APP.m_window.GetWndHandle(), &mousePos);
+
+			// ③ 左上(0,0)基準のマウス座標を、画面中央(0,0)のゲーム空間座標に変換
+			// （Y座標は「上がプラス」になるようにマイナスを掛けて反転させます）
+			float gameMouseX = (float)mousePos.x - (SCREEN_WIDTH / 2.0f);
+			float gameMouseY = -((float)mousePos.y - (SCREEN_HEIGHT / 2.0f));
+
+			// ④ プレイヤーからマウスカーソルへの距離（ベクトル）を計算
+			float dx = gameMouseX - m_player->pos.x;
+			float dy = gameMouseY - m_player->pos.y;
+
+			// ⑤ atan2を使って、マウスの方向を向くための角度（ラジアン）を計算
+			// （※現在のBulletクラスの移動計算式に合わせて、dxをマイナスにしています）
+			float rad = atan2(-dx, dy);
+
+			// ラジアンから度数法（Degree）に変換
+			float degree = rad * (180.0f / 3.14159265f);
+
+			// ⑥ 計算した角度を渡して弾を生成
+			objList.push_back(std::make_shared<Bullet>(
+				m_player->pos.x,
+				m_player->pos.y,
+				degree,
+				&m_bulletTex,
+				false
+			));
+
+			// クールダウンをセット（例：15フレーム）
+			m_shootTimer = 15;
+		}
+	}
+
+	// クールダウンの減少処理
+	if (m_shootTimer > 0) {
+		m_shootTimer--;
+	}
+
+	// --- 全オブジェクト更新 & 敵の発射チェック ---
+	// ① 新しく生まれるオブジェクト（弾など）を一時的に入れるリスト
+	std::vector<std::shared_ptr<GameObject>> newObjects;
+
+	// 全オブジェクトの更新
+	for (auto& obj : objList)
+	{
+		obj->Update(); // それぞれのUpdateを実行
+
+		// ② もし現在のオブジェクトが「敵 (Enemy)」だったら？
+		if (auto enemy = std::dynamic_pointer_cast<Enemy>(obj))
+		{
+			// 敵が「弾を撃ちたい」状態になっているかチェック
+			if (enemy->wantToShoot)
+			{
+				// 敵の座標と角度で、新しい弾を生成（最後を true にすることで敵の弾になる！）
+				std::shared_ptr<Bullet> bullet = std::make_shared<Bullet>(
+					enemy->pos.x, enemy->pos.y, enemy->m_angle, &m_bulletTex, true
+				);
+
+				// 一時リストに弾を追加
+				newObjects.push_back(bullet);
+
+				// 撃ち終わったのでフラグを戻す
+				enemy->wantToShoot = false;
+			}
+		}
+	}
+
+	// ③ 一時リストに入っている新しい弾を、メインのリストにまとめて追加！
+	for (auto& newObj : newObjects)
+	{
+		objList.push_back(newObj);
+	}
+
+
+	// --- 当たり判定 ---
+	for (auto& objA : objList)
+	{
+		for (auto& objB : objList)
+		{
+			if (objA == objB) continue;
+			if (objA->isDead || objB->isDead) continue;
+
+			auto bullet = std::dynamic_pointer_cast<Bullet>(objA);
+
+			if (bullet)
+			{
+				// 味方の弾 vs 敵
+				if (bullet->isEnemy == false)
+				{
+					auto enemy = std::dynamic_pointer_cast<Enemy>(objB);
+					if (enemy)
+					{
+						if ((bullet->pos - enemy->pos).Length() < 50.0f) {
+							bullet->isDead = true;
+							enemy->isDead = true;
+
+							m_score += 100;
+						}
+					}
+				}
+
+				// 敵の弾 vs プレイヤー
+				if (bullet->isEnemy == true)
+				{
+					auto player = std::dynamic_pointer_cast<Player>(objB);
+					if (player)
+					{
+						if ((bullet->pos - player->pos).Length() < 30.0f) {
+							bullet->isDead = true;
+							player->isDead = true;
+
+							// ★ここでシーン切り替え！
+							// cppファイルなら安全に切り替えができます
+							SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score));
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// すべてのオブジェクトの中から「弾」と「壁」のペアを探して当たり判定
+	for (auto& obj1 : objList) {
+		// dynamic_pointer_cast で obj1 が「Bullet(弾)」かチェック
+		std::shared_ptr<Bullet> bullet = std::dynamic_pointer_cast<Bullet>(obj1);
+		if (!bullet) continue; // 弾じゃなければ次のオブジェクトへ
+
+		for (auto& obj2 : objList) {
+			// obj2 が「Wall(壁)」かチェック
+			std::shared_ptr<Wall> wall = std::dynamic_pointer_cast<Wall>(obj2);
+			if (!wall) continue; // 壁じゃなければ次のオブジェクトへ
+
+			// --- ここからAABB当たり判定 ---
+			// 弾と壁の中心座標の距離（絶対値）を計算
+			float dx = abs(bullet->pos.x - wall->pos.x);
+			float dy = abs(bullet->pos.y - wall->pos.y);
+
+			// 壁のサイズは64x64(半分で32)、弾のサイズを仮に16x16(半分で8)とします。
+			// 当たり判定の範囲は 32 + 8 = 40.0f
+			float hitRange = 40.0f;
+
+			// X軸とY軸の距離がどちらも hitRange 未満なら「当たっている」
+			if (dx < hitRange && dy < hitRange) {
+
+				// 横からぶつかったか、上下からぶつかったか（めり込み具合）を比較
+				if (dx > dy) {
+					// 横からぶつかった場合：X方向の移動を反転させる
+					bullet->OnHitWall(true);
+
+					// ★追加：壁の中にめり込んだ分だけ、強引に外へ押し出す！
+					if (bullet->pos.x < wall->pos.x) bullet->pos.x -= (hitRange - dx);
+					else                             bullet->pos.x += (hitRange - dx);
+				}
+				else {
+					// 上下からぶつかった場合：Y方向の移動を反転させる
+					bullet->OnHitWall(false);
+
+					// ★追加：壁の中にめり込んだ分だけ、強引に外へ押し出す！
+					if (bullet->pos.y < wall->pos.y) bullet->pos.y -= (hitRange - dy);
+					else                             bullet->pos.y += (hitRange - dy);
+				}
+
+				// 1フレームに複数の壁に同時当たりして挙動がおかしくなるのを防ぐ
+				break;
+			}
+		}
+	}
+
+	// --- キャラクター（プレイヤー・敵）と壁の当たり判定（押し出し） ---
+	for (auto& obj1 : objList) {
+		// obj1 が「Wall(壁)」かチェック
+		std::shared_ptr<Wall> wall = std::dynamic_pointer_cast<Wall>(obj1);
+		if (!wall) continue; // 壁じゃなければ次のオブジェクトへ
+
+		for (auto& obj2 : objList) {
+			if (obj1 == obj2) continue; // 自分自身との判定はスキップ
+
+			// プレイヤーか敵かを確認するためのポインタ
+			std::shared_ptr<Player> player = std::dynamic_pointer_cast<Player>(obj2);
+			std::shared_ptr<Enemy>  enemy = std::dynamic_pointer_cast<Enemy>(obj2);
+
+			if (!player && !enemy) continue; // どちらでもなければ次のオブジェクトへ
+
+			// 当たり判定を行う対象の「座標ポインタ」を用意
+			Math::Vector2* targetPos = nullptr;
+
+			//当たり判定範囲
+			float hitRange = 64.0f;
+
+			if (player) targetPos = &player->pos;
+			if (enemy)  targetPos = &enemy->pos;
+
+			if (targetPos == nullptr) continue;
+
+			// 対象と壁の中心座標の距離（絶対値）を計算
+			float dx = abs(targetPos->x - wall->pos.x);
+			float dy = abs(targetPos->y - wall->pos.y);
+
+			// X軸とY軸の距離がどちらも hitRange 未満なら「当たっている（めり込んでいる）」
+			if (dx < hitRange && dy < hitRange) {
+
+				// 横からぶつかったか、上下からぶつかったか（めり込み具合）を比較
+				if (dx > dy) {
+					// 横方向の押し出し
+					if (targetPos->x < wall->pos.x) targetPos->x -= (hitRange - dx);
+					else                            targetPos->x += (hitRange - dx);
+				}
+				else {
+					// 上下方向の押し出し
+					if (targetPos->y < wall->pos.y) targetPos->y -= (hitRange - dy);
+					else                            targetPos->y += (hitRange - dy);
+				}
+			}
+		}
+	}
+
+	// ===================================================
+	// ★ プレイヤーと敵の弾の当たり判定
+	// ===================================================
+	if (m_player && !m_player->isDead) {
+		for (auto& obj : objList) {
+			// オブジェクトが弾(Bullet)かどうかチェック
+			if (auto bullet = std::dynamic_pointer_cast<Bullet>(obj)) {
+
+				// その弾が「敵の弾（isEnemy == true）」だったら
+				if (bullet->isEnemy) {
+
+					// プレイヤーと弾の距離を三平方の定理で計算
+					float dx = m_player->pos.x - bullet->pos.x;
+					float dy = m_player->pos.y - bullet->pos.y;
+					float dist = std::sqrt(dx * dx + dy * dy);
+
+					// 距離が一定以内（例：20ピクセル）なら「当たった！」と判定
+					if (dist < 20.0f) {
+						m_player->isDead = true; // プレイヤーをやられ状態にする
+						bullet->isDead = true;   // 当たった弾も消す
+
+						// ★ゲームオーバーシーンへ移行（現在のスコアを渡す）
+						SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score));
+
+						return; // シーンが切り替わるので、このUpdate関数をここで強制終了する（エラー防止）
+					}
+				}
+			}
+		}
+	}
+
+	// --- お掃除 ---
+	auto it = std::remove_if(objList.begin(), objList.end(), [](std::shared_ptr<GameObject> obj) {
+		return obj->isDead;
+		});
+	objList.erase(it, objList.end());
+
+	//ステージクリアチェック
+	int enemyCount = 0;
+
+	// リストの中身を全部見て、Enemyが何体残っているか数える
+	for (auto& obj : objList) {
+		if (std::dynamic_pointer_cast<Enemy>(obj)) {
+			enemyCount++;
+		}
+	}
+
+	// 敵が0体ならステージクリア！
+	if (enemyCount == 0) {
+		// ※ひとまず動作確認のために、GameOverSceneにスコアを渡して遷移させます。
+		// （後々、GameClearScene や 次のステージのGameScene に切り替えるように変更します）
+		SceneManager::GetInstance().ChangeScene(new GameScene(m_currentStage + 1));
+		return;
+	}
+
+}
+
+void GameScene::Draw()
+{
+	for (auto& obj : objList) obj->Draw();
+
+	// ★追加：スコアを表示する
+	// "SCORE: 100" のような文字を作ります
+	std::string scoreStr = "SCORE: " + std::to_string(m_score);
+
+	// 画面の左上（X:-600, Y:300）あたりに表示
+	// 引数は (X座標, Y座標, 文字列, 色) です
+	SHADER.m_spriteShader.DrawString(-600, 300, scoreStr.c_str(), Math::Vector4(1, 1, 1, 1));
+}
