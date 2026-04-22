@@ -1,5 +1,5 @@
 #include "TitleScene.h"
-#include "GameScene.h"      // ★ここでインクルード！
+#include "GameScene.h"
 #include "SceneManager.h"
 
 void TitleScene::Update()
