@@ -180,49 +180,7 @@ void GameScene::Update()
 	}
 
 
-
-	for (auto& objA : objList)
-	{
-		for (auto& objB : objList)
-		{
-			if (objA == objB) continue;
-			if (objA->isDead || objB->isDead) continue;
-
-			auto bullet = std::dynamic_pointer_cast<Bullet>(objA);
-
-			if (bullet)
-			{
-				if (bullet->isEnemy == false)
-				{
-					auto enemy = std::dynamic_pointer_cast<Enemy>(objB);
-					if (enemy)
-					{
-						if ((bullet->pos - enemy->pos).Length() < 50.0f) {
-							bullet->isDead = true;
-							enemy->isDead = true;
-
-							m_score += 100;
-						}
-					}
-				}
-
-				if (bullet->isEnemy == true)
-				{
-					auto player = std::dynamic_pointer_cast<Player>(objB);
-					if (player)
-					{
-						if ((bullet->pos - player->pos).Length() < 30.0f) {
-							bullet->isDead = true;
-							player->isDead = true;
-
-							SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score));
-							return;
-						}
-					}
-				}
-			}
-		}
-	}
+	
 
 	// すべてのオブジェクトの中から「弾」と「壁」のペアを探して当たり判定
 	for (auto& obj1 : objList) {
@@ -319,32 +277,91 @@ void GameScene::Update()
 		}
 	}
 
-	// ===================================================
-	// ★ プレイヤーと敵の弾の当たり判定
-	// ===================================================
-	if (m_player && !m_player->isDead) {
-		for (auto& obj : objList) {
-			// オブジェクトが弾(Bullet)かどうかチェック
-			if (auto bullet = std::dynamic_pointer_cast<Bullet>(obj)) {
+	//自機と敵の弾の当たり判定
+	for (auto& objA : objList)
+	{
+		for (auto& objB : objList)
+		{
+			if (objA == objB) continue;
+			if (objA->isDead || objB->isDead) continue;
 
-				// その弾が「敵の弾（isEnemy == true）」だったら
-				if (bullet->isEnemy) {
+			auto bullet = std::dynamic_pointer_cast<Bullet>(objA);
 
-					// プレイヤーと弾の距離を三平方の定理で計算
-					float dx = m_player->pos.x - bullet->pos.x;
-					float dy = m_player->pos.y - bullet->pos.y;
-					float dist = std::sqrt(dx * dx + dy * dy);
+			if (bullet)
+			{
+				if (bullet->isEnemy == false)
+				{
+					auto enemy = std::dynamic_pointer_cast<Enemy>(objB);
+					if (enemy)
+					{
+						if ((bullet->pos - enemy->pos).Length() < 50.0f) {
+							bullet->isDead = true;
+							enemy->isDead = true;
 
-					// 距離が一定以内（例：20ピクセル）なら「当たった！」と判定
-					if (dist < 20.0f) {
-						m_player->isDead = true; // プレイヤーをやられ状態にする
-						bullet->isDead = true;   // 当たった弾も消す
-
-						// ★ゲームオーバーシーンへ移行（現在のスコアを渡す）
-						SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score));
-
-						return; // シーンが切り替わるので、このUpdate関数をここで強制終了する（エラー防止）
+							m_score += 100;
+						}
 					}
+				}
+
+				if (bullet->isEnemy == true)
+				{
+					auto player = std::dynamic_pointer_cast<Player>(objB);
+					if (player)
+					{
+						if ((bullet->pos - player->pos).Length() < 30.0f) {
+							bullet->isDead = true;
+							player->isDead = true;
+
+							SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score));
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	//自機と敵の当たり判定
+	for (size_t i = 0; i < objList.size(); i++) {
+		for (size_t j = i + 1; j < objList.size(); j++) {
+			auto objA = objList[i];
+			auto objB = objList[j];
+
+			// お互いが生きているかチェック
+			if (objA->isDead || objB->isDead) continue;
+
+			// 対象が「プレイヤー」か「敵」かを判定（弾や壁は押し合わないようにする）
+			bool isTankA = std::dynamic_pointer_cast<Player>(objA) || std::dynamic_pointer_cast<Enemy>(objA);
+			bool isTankB = std::dynamic_pointer_cast<Player>(objB) || std::dynamic_pointer_cast<Enemy>(objB);
+
+			// 両方とも戦車（PlayerかEnemy）だった場合のみ、押し合いの計算をする
+			if (isTankA && isTankB) {
+
+				// ① 2つの戦車の距離を計算
+				float dx = objB->pos.x - objA->pos.x;
+				float dy = objB->pos.y - objA->pos.y;
+				float dist = std::sqrt(dx * dx + dy * dy);
+
+				// 戦車の当たり判定の半径（約20ピクセル）
+				float radiusA = 20.0f;
+				float radiusB = 20.0f;
+
+				// ② 距離が半径の合計より短い ＝ めり込んでいる！
+				if (dist > 0.0f && dist < (radiusA + radiusB)) {
+
+					// めり込んでいる長さ
+					float overlap = (radiusA + radiusB) - dist;
+
+					// 押し出す方向を計算（AからBへ向かう方向を長さ1にする）
+					float nx = dx / dist;
+					float ny = dy / dist;
+
+					// ③ お互いに、めり込んだ長さの「半分」ずつ逆方向に押し出す
+					objA->pos.x -= nx * (overlap * 0.5f);
+					objA->pos.y -= ny * (overlap * 0.5f);
+
+					objB->pos.x += nx * (overlap * 0.5f);
+					objB->pos.y += ny * (overlap * 0.5f);
 				}
 			}
 		}
