@@ -1,6 +1,4 @@
 #pragma once
-#include <cmath>
-#include <DirectXMath.h>
 #include "GameObject.h"
 #include "main.h"
 
@@ -12,7 +10,7 @@ class Bullet : public GameObject
 	float m_moveX = 0.0f;
 	float m_moveY = 0.0f;
 
-	// 回転用（見た目用）
+	// 回転用
 	float m_drawAngle = 0.0f;
 
 	//弾の反射回数の管理
@@ -58,7 +56,6 @@ public:
 				m_moveX = -m_moveX;
 				m_bounceCount++;
 
-				// 壁にめり込まないように位置を補正
 				if (pos.x < SCREEN_LEFT) pos.x = SCREEN_LEFT;
 				if (pos.x > SCREEN_RIGHT) pos.x = SCREEN_RIGHT;
 			}
@@ -79,7 +76,6 @@ public:
 				m_moveY = -m_moveY;
 				m_bounceCount++;
 
-				// 壁にめり込まないように位置を補正
 				if (pos.y < SCREEN_BOTTOM) pos.y = SCREEN_BOTTOM;
 				if (pos.y > SCREEN_TOP) pos.y = SCREEN_TOP;
 			}
