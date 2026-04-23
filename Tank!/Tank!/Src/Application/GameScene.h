@@ -5,15 +5,6 @@
 #include "Enemy.h"
 #include "Bullet.h"
 #include "Wall.h"
-
-
-#include "SceneManager.h"
-
-#include <vector>
-#include <memory>
-#include <string>
-#include <algorithm>
-
 class GameScene : public Scene
 {
 	std::shared_ptr<Player> m_player;

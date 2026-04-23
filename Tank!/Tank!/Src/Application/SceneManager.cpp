@@ -1,5 +1,4 @@
 #include "SceneManager.h"
-#include "GameScene.h"
 #include "TitleScene.h"
 
 void SceneManager::Init()

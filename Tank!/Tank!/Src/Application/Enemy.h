@@ -1,9 +1,6 @@
 #pragma once
 #include "GameObject.h"
 #include "main.h"
-#include <cstdlib>
-#include <cmath>
-#include<memory>
 #include "Player.h"
 
 

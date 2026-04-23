@@ -1,6 +1,4 @@
 #pragma once
-#include<Windows.h>
-#include <d3d11.h>
 
 const float SCREEN_WIDTH = 1280.0f;
 const float SCREEN_HEIGHT = 720.0f;
