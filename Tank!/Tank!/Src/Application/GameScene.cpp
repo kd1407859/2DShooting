@@ -141,7 +141,7 @@ void GameScene::Update()
 			));
 
 
-			m_shootTimer = 15;
+			m_shootTimer = 30;
 		}
 	}
 

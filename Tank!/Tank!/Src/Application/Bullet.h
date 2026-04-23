@@ -34,7 +34,7 @@ public:
 
 
 		float rad = DirectX::XMConvertToRadians(angle);
-		float speed = isEnemy ? 6.0f : 10.0f;
+		float speed = isEnemy ? 5.0f : 5.0f;
 
 		m_moveX = -sin(rad) * speed;
 		m_moveY = cos(rad) * speed;

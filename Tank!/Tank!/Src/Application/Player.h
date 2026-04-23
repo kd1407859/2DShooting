@@ -30,7 +30,7 @@ public:
     void Update() override {
         
         
-        float speed = 4.0f;
+        float speed = 2.0f;
 
         if (GetAsyncKeyState('W') & 0x8000) {
             pos.y += speed; // è„Ç÷
