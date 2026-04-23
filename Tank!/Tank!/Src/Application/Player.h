@@ -29,8 +29,8 @@ public:
 
     void Update() override {
         
-        // --- 直感的なWASD移動処理 ---
-        float speed = 4.0f; // 戦車の移動スピード
+        
+        float speed = 4.0f;
 
         if (GetAsyncKeyState('W') & 0x8000) {
             pos.y += speed; // 上へ
@@ -44,6 +44,23 @@ public:
         if (GetAsyncKeyState('D') & 0x8000) {
             pos.x += speed; // 右へ
         }
+
+        // --- ② マウスの方向に向く処理 ---
+        POINT mousePos;
+        GetCursorPos(&mousePos);
+
+        ScreenToClient(APP.m_window.GetWndHandle(), &mousePos);
+
+        float worldMouseX = (float)mousePos.x - (SCREEN_WIDTH / 2.0f);
+        float worldMouseY = (SCREEN_HEIGHT / 2.0f) - (float)mousePos.y;
+
+
+        float dx = worldMouseX - pos.x;
+        float dy = worldMouseY - pos.y;
+
+        float rad = atan2(-dx, dy);
+
+        m_angle = DirectX::XMConvertToDegrees(rad);
        
         const float BODY_SIZE = 32.0f;
 
@@ -61,9 +78,10 @@ public:
 
         
 
-        Math::Matrix transMat = Math::Matrix::CreateTranslation(pos.x, pos.y, 0);
+        Math::Matrix worldMat = Math::Matrix::CreateRotationZ(DirectX::XMConvertToRadians(m_angle)) *
+            Math::Matrix::CreateTranslation(pos.x, pos.y, 0);
 
-        m_mat = transMat;
+        m_mat = worldMat;
         
     }
 
