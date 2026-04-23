@@ -28,12 +28,12 @@ class GameScene : public Scene
 	int m_score = 0;
 
 private:
-	int m_currentStage; // ★追加：現在のステージ番号を記憶する変数
+	int m_currentStage;
 public:
 
 	GameScene(int stageNum = 1)
 	{
-		m_currentStage = stageNum; // 受け取った番号を記憶！
+		m_currentStage = stageNum;
 	}
 
 	void Init() override;

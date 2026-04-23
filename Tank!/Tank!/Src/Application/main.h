@@ -2,11 +2,9 @@
 #include<Windows.h>
 #include <d3d11.h>
 
-// ★追加：画面サイズ定義
 const float SCREEN_WIDTH = 1280.0f;
 const float SCREEN_HEIGHT = 720.0f;
 
-// ★追加：画面の端の座標
 const float SCREEN_RIGHT = SCREEN_WIDTH / 2.0f;		//  640.0f
 const float SCREEN_LEFT = -SCREEN_WIDTH / 2.0f;		// -640.0f
 const float SCREEN_TOP = SCREEN_HEIGHT / 2.0f;		//  360.0f

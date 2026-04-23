@@ -90,11 +90,11 @@ void GameScene::Init()
 		}
 	}
 
-	// 茶色の敵を出現させる場合（動かない）
+	// 茶色の敵を出現させる場合
 	std::shared_ptr<Enemy> enemy1 = std::make_shared<Enemy>(100, 100, &m_enemyTex, EnemyType::Brown, m_player);
 	objList.push_back(enemy1);
 
-	// 灰色の敵を出現させる場合（ウロウロ動く）
+	// 灰色の敵を出現させる場合
 	std::shared_ptr<Enemy> enemy2 = std::make_shared<Enemy>(-200, 200, &m_enemyTex, EnemyType::Ash, m_player);
 	objList.push_back(enemy2);
 
@@ -193,7 +193,6 @@ void GameScene::Update()
 			std::shared_ptr<Wall> wall = std::dynamic_pointer_cast<Wall>(obj2);
 			if (!wall) continue; // 壁じゃなければ次のオブジェクトへ
 
-			// --- ここからAABB当たり判定 ---
 			// 弾と壁の中心座標の距離（絶対値）を計算
 			float dx = abs(bullet->pos.x - wall->pos.x);
 			float dy = abs(bullet->pos.y - wall->pos.y);
@@ -202,7 +201,6 @@ void GameScene::Update()
 			// 当たり判定の範囲は 32 + 8 = 40.0f
 			float hitRange = 40.0f;
 
-			// X軸とY軸の距離がどちらも hitRange 未満なら「当たっている」
 			if (dx < hitRange && dy < hitRange) {
 
 				// 横からぶつかったか、上下からぶつかったか（めり込み具合）を比較
@@ -218,12 +216,10 @@ void GameScene::Update()
 					// 上下からぶつかった場合：Y方向の移動を反転させる
 					bullet->OnHitWall(false);
 
-					// ★追加：壁の中にめり込んだ分だけ、強引に外へ押し出す！
 					if (bullet->pos.y < wall->pos.y) bullet->pos.y -= (hitRange - dy);
 					else                             bullet->pos.y += (hitRange - dy);
 				}
 
-				// 1フレームに複数の壁に同時当たりして挙動がおかしくなるのを防ぐ
 				break;
 			}
 		}
@@ -330,33 +326,29 @@ void GameScene::Update()
 			// お互いが生きているかチェック
 			if (objA->isDead || objB->isDead) continue;
 
-			// 対象が「プレイヤー」か「敵」かを判定（弾や壁は押し合わないようにする）
+			// 対象が「プレイヤー」か「敵」かを判定
 			bool isTankA = std::dynamic_pointer_cast<Player>(objA) || std::dynamic_pointer_cast<Enemy>(objA);
 			bool isTankB = std::dynamic_pointer_cast<Player>(objB) || std::dynamic_pointer_cast<Enemy>(objB);
 
-			// 両方とも戦車（PlayerかEnemy）だった場合のみ、押し合いの計算をする
 			if (isTankA && isTankB) {
 
-				// ① 2つの戦車の距離を計算
 				float dx = objB->pos.x - objA->pos.x;
 				float dy = objB->pos.y - objA->pos.y;
 				float dist = std::sqrt(dx * dx + dy * dy);
 
-				// 戦車の当たり判定の半径（約20ピクセル）
+				// 戦車の当たり判定の半径
 				float radiusA = 20.0f;
 				float radiusB = 20.0f;
 
-				// ② 距離が半径の合計より短い ＝ めり込んでいる！
 				if (dist > 0.0f && dist < (radiusA + radiusB)) {
 
 					// めり込んでいる長さ
 					float overlap = (radiusA + radiusB) - dist;
 
-					// 押し出す方向を計算（AからBへ向かう方向を長さ1にする）
+					// 押し出す方向を計算
 					float nx = dx / dist;
 					float ny = dy / dist;
 
-					// ③ お互いに、めり込んだ長さの「半分」ずつ逆方向に押し出す
 					objA->pos.x -= nx * (overlap * 0.5f);
 					objA->pos.y -= ny * (overlap * 0.5f);
 
@@ -367,7 +359,6 @@ void GameScene::Update()
 		}
 	}
 
-	// --- お掃除 ---
 	auto it = std::remove_if(objList.begin(), objList.end(), [](std::shared_ptr<GameObject> obj) {
 		return obj->isDead;
 		});
@@ -376,17 +367,13 @@ void GameScene::Update()
 	//ステージクリアチェック
 	int enemyCount = 0;
 
-	// リストの中身を全部見て、Enemyが何体残っているか数える
 	for (auto& obj : objList) {
 		if (std::dynamic_pointer_cast<Enemy>(obj)) {
 			enemyCount++;
 		}
 	}
 
-	// 敵が0体ならステージクリア！
 	if (enemyCount == 0) {
-		// ※ひとまず動作確認のために、GameOverSceneにスコアを渡して遷移させます。
-		// （後々、GameClearScene や 次のステージのGameScene に切り替えるように変更します）
 		SceneManager::GetInstance().ChangeScene(new GameScene(m_currentStage + 1));
 		return;
 	}
@@ -397,11 +384,7 @@ void GameScene::Draw()
 {
 	for (auto& obj : objList) obj->Draw();
 
-	// ★追加：スコアを表示する
-	// "SCORE: 100" のような文字を作ります
 	std::string scoreStr = "SCORE: " + std::to_string(m_score);
 
-	// 画面の左上（X:-600, Y:300）あたりに表示
-	// 引数は (X座標, Y座標, 文字列, 色) です
 	SHADER.m_spriteShader.DrawString(-600, 300, scoreStr.c_str(), Math::Vector4(1, 1, 1, 1));
 }

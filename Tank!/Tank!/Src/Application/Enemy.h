@@ -62,14 +62,12 @@ public:
 		// ==========================================
 		if (m_type == EnemyType::Ash)
 		{
-			// 灰色（Ash）は今まで通りウロウロ動く
 			m_moveTimer--;
 			if (m_moveTimer <= 0)
 			{
 				m_moveTimer = 60 + (rand() % 120);
 			}
 
-			// 前に進む
 			float rad = DirectX::XMConvertToRadians(m_angle);
 			float speed = 2.0f;
 			pos.x += -sin(rad) * speed;
@@ -81,7 +79,7 @@ public:
 		}
 
 
-	//画面端判定
+		//画面端判定
 		if (pos.x < SCREEN_LEFT + 50) {
 			pos.x = SCREEN_LEFT + 50;
 			m_angle = 90.0f; // 左端
