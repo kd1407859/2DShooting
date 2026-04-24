@@ -12,8 +12,10 @@ void GameScene::Init()
 	srand((unsigned int)time(NULL));
 
 	m_bulletTex.Load("Texture/Player/bullet.png");
-	m_enemyTex.Load("Texture/Enemy/chara.png");
+	m_enemyTexBrown.Load("Texture/Enemy/enemy_brown.png");
+	m_enemyTexAsh.Load("Texture/Enemy/enemy_ash.png");
 	m_wallTex.Load("Texture/Map/wall.png");
+	m_dirtTex.Load("Texture/Map/dirt.png");
 
 	objList.clear();
 
@@ -81,22 +83,14 @@ void GameScene::Init()
 			}
 			else if (stageData[y][x] == 3) {
 				// 3: 茶色戦車の生成（動かない）
-				objList.push_back(std::make_shared<Enemy>(posX, posY, &m_enemyTex, EnemyType::Brown, m_player));
+				objList.push_back(std::make_shared<Enemy>(posX, posY, &m_enemyTexBrown, EnemyType::Brown, m_player));
 			}
 			else if (stageData[y][x] == 4) {
 				// 4: 灰色戦車の生成（動く）
-				objList.push_back(std::make_shared<Enemy>(posX, posY, &m_enemyTex, EnemyType::Ash, m_player));
+				objList.push_back(std::make_shared<Enemy>(posX, posY, &m_enemyTexAsh, EnemyType::Ash, m_player));
 			}
 		}
 	}
-
-	// 茶色の敵を出現させる場合
-	std::shared_ptr<Enemy> enemy1 = std::make_shared<Enemy>(100, 100, &m_enemyTex, EnemyType::Brown, m_player);
-	objList.push_back(enemy1);
-
-	// 灰色の敵を出現させる場合
-	std::shared_ptr<Enemy> enemy2 = std::make_shared<Enemy>(-200, 200, &m_enemyTex, EnemyType::Ash, m_player);
-	objList.push_back(enemy2);
 
 	m_shootTimer = 0;
 
@@ -111,8 +105,21 @@ void GameScene::Update()
 
 	m_spawnTimer--;
 
+	int playerBulletCount = 0;
+	const int MAX_PLAYER_BULLETS = 5; // ★同時に出せる弾の上限（お好みで調整してください）
+
+	for (auto& obj : objList) {
+		// オブジェクトが「弾 (Bullet)」であるかチェック
+		if (auto bullet = std::dynamic_pointer_cast<Bullet>(obj)) {
+			// それが「敵の弾ではない（＝プレイヤーの弾）」かつ「まだ消滅していない」ならカウント
+			if (bullet->isEnemy == false && bullet->isDead == false) {
+				playerBulletCount++;
+			}
+		}
+	}
+
 	// --- プレイヤーの発射 ---
-	if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)
+	if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) && m_shootTimer <= 0 && playerBulletCount < MAX_PLAYER_BULLETS)
 	{
 		if (m_shootTimer <= 0)
 		{
@@ -132,9 +139,13 @@ void GameScene::Update()
 
 			float degree = rad * (180.0f / 3.14159265f);
 
+			float offset = 34.0f;
+			float bulletX = m_player->pos.x - sin(rad) * offset;
+			float bulletY = m_player->pos.y + cos(rad) * offset;
+
 			objList.push_back(std::make_shared<Bullet>(
-				m_player->pos.x,
-				m_player->pos.y,
+				bulletX,
+				bulletY,
 				degree,
 				&m_bulletTex,
 				false
@@ -150,6 +161,50 @@ void GameScene::Update()
 		m_shootTimer--;
 	}
 
+	//敵の視線判定(レイキャスト)
+	for (auto& obj : objList) {
+		auto enemy = std::dynamic_pointer_cast<Enemy>(obj);
+		if (!enemy) continue;
+
+		// --- 視線判定（Line of Sight） ---
+		// 基本は見えていると仮定する
+		enemy->m_canSeePlayer = true;
+
+		// 敵からプレイヤーへのベクトル
+		Math::Vector2 rayPos = enemy->pos;
+		Math::Vector2 targetPos = m_player->pos;
+		Math::Vector2 diff = targetPos - rayPos;
+		float distToPlayer = diff.Length();
+		diff.Normalize();
+
+		// 敵からプレイヤーに向かって、少しずつ（例えば32ピクセルずつ）進んで壁に当たるか調べる
+		float checkStep = 32.0f;
+		float currentDist = checkStep;
+
+		while (currentDist < distToPlayer) {
+			// チェック地点を計算
+			Math::Vector2 checkPos = rayPos + diff * currentDist;
+
+			// すべてのオブジェクトの中から壁（Wall）を探して衝突判定
+			for (auto& wallObj : objList) {
+				auto wall = std::dynamic_pointer_cast<Wall>(wallObj);
+				if (!wall) continue;
+
+				// 壁との距離をチェック（壁のサイズ64に対して、32以内なら接触とみなす）
+				float dx = wall->pos.x - checkPos.x;
+				float dy = wall->pos.y - checkPos.y;
+				if (std::sqrt(dx * dx + dy * dy) < 30.0f) {
+					// 壁に遮られた！
+					enemy->m_canSeePlayer = false;
+					break;
+				}
+			}
+
+			if (!enemy->m_canSeePlayer) break; // すでに見えないならループ抜ける
+			currentDist += checkStep;
+		}
+	}
+
 	// --- 全オブジェクト更新 & 敵の発射チェック ---
 	std::vector<std::shared_ptr<GameObject>> newObjects;
 
@@ -163,8 +218,14 @@ void GameScene::Update()
 
 			if (enemy->wantToShoot)
 			{
+				float enemyRad = enemy->m_angle * (3.14159265f / 180.0f);
+				float offset = 34.0f;
+
+				float bulletX = enemy->pos.x - sin(enemyRad) * offset;
+				float bulletY = enemy->pos.y + cos(enemyRad) * offset;
+
 				std::shared_ptr<Bullet> bullet = std::make_shared<Bullet>(
-					enemy->pos.x, enemy->pos.y, enemy->m_angle, &m_bulletTex, true
+					bulletX, bulletY, enemy->m_angle, &m_bulletTex, true
 				);
 
 				newObjects.push_back(bullet);
@@ -382,7 +443,25 @@ void GameScene::Update()
 
 void GameScene::Draw()
 {
-	for (auto& obj : objList) obj->Draw();
+	Math::Rectangle srcRect = { 0,0,64,64 };
+
+	for (int y = 0; y < 12; ++y)
+	{
+		for (int x = 0; x < 20; ++x)
+		{
+			float posX = (x * 64.0f) - (SCREEN_WIDTH / 2.0f) + 32.0f;
+			float posY = (SCREEN_HEIGHT / 2.0f) - (y * 64.0f) - 32.0f;
+
+			Math::Matrix mat = Math::Matrix::CreateTranslation(posX, posY, 0.0f);
+			SHADER.m_spriteShader.SetMatrix(mat);
+			SHADER.m_spriteShader.DrawTex(&m_dirtTex, 0, 0,&srcRect);
+		}
+	}
+
+	for (auto& obj : objList)
+	{
+		obj->Draw();
+	}
 
 	std::string scoreStr = "SCORE: " + std::to_string(m_score);
 
