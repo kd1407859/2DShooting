@@ -3,7 +3,6 @@
 #include "main.h"
 #include "Player.h"
 
-
 enum class EnemyType
 {
 	Brown,

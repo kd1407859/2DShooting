@@ -1,10 +1,7 @@
 #include "GameScene.h"
 #include "GameOverScene.h"
 #include "SceneManager.h"
-#include <ctime>
 
-#include<fstream>
-#include<string>
 
 void GameScene::Init()
 {
@@ -14,7 +11,7 @@ void GameScene::Init()
 	m_bulletTex.Load("Texture/Player/bullet.png");
 	m_enemyTexBrown.Load("Texture/Enemy/enemy_brown.png");
 	m_enemyTexAsh.Load("Texture/Enemy/enemy_ash.png");
-	m_wallTex.Load("Texture/Map/wall.png");
+	m_wallTex.Load("Texture/Map/treeSmall.png");
 	m_dirtTex.Load("Texture/Map/dirt.png");
 
 	objList.clear();
@@ -24,7 +21,7 @@ void GameScene::Init()
 	const float CHIP_SIZE = 64.0f;
 	const float chipshiftdown = 24.0f;
 
-	// ① まず配列を全部 0（空白）で作っておく
+	// ① 配列内を空白にしておく
 	int stageData[MAP_H][MAP_W] = { 0 };
 
 	std::string fileName = "Texture/Map/stage" + std::to_string(m_currentStage) + ".txt";
@@ -32,7 +29,7 @@ void GameScene::Init()
 	// ② テキストファイルを開く
 	std::ifstream file(fileName);
 
-	// ③ ファイルがちゃんと開けた場合のみ読み込む
+	// ③ ファイルが開けた場合のみ読み込む
 	if (file.is_open())
 	{
 		std::string line;
@@ -49,7 +46,6 @@ void GameScene::Init()
 				else if (line[x] == '2') stageData[y][x] = 2; // プレイヤー
 				else if (line[x] == '3') stageData[y][x] = 3; // 敵（茶）
 				else if (line[x] == '4') stageData[y][x] = 4; // 敵（灰）
-				// '0' の場合はそのまま（配列の初期値が0なので）
 			}
 			y++; // 次の行へ
 		}
@@ -65,11 +61,11 @@ void GameScene::Init()
 	m_player = std::make_shared<Player>();
 	objList.push_back(m_player);
 
-	// 二次元配列をループして、壁・プレイヤー・敵を配置
+	// 壁・プレイヤー・敵を配置
 	for (int y = 0; y < MAP_H; y++) {
 		for (int x = 0; x < MAP_W; x++) {
 
-			// 配列のインデックスから画面座標(x, y)を計算
+			
 			float posX = SCREEN_LEFT + (x * CHIP_SIZE) + (CHIP_SIZE / 2.0f);
 			float posY = SCREEN_TOP - (y * CHIP_SIZE) - (CHIP_SIZE / 2.0f) + chipshiftdown;
 
@@ -106,7 +102,7 @@ void GameScene::Update()
 	m_spawnTimer--;
 
 	int playerBulletCount = 0;
-	const int MAX_PLAYER_BULLETS = 5; // ★同時に出せる弾の上限（お好みで調整してください）
+	const int MAX_PLAYER_BULLETS = 5; //同時に出せる弾の上限
 
 	for (auto& obj : objList) {
 		// オブジェクトが「弾 (Bullet)」であるかチェック
@@ -194,7 +190,7 @@ void GameScene::Update()
 				float dx = wall->pos.x - checkPos.x;
 				float dy = wall->pos.y - checkPos.y;
 				if (std::sqrt(dx * dx + dy * dy) < 30.0f) {
-					// 壁に遮られた！
+					// 壁に遮られたらFalse
 					enemy->m_canSeePlayer = false;
 					break;
 				}
@@ -290,7 +286,7 @@ void GameScene::Update()
 	for (auto& obj1 : objList) {
 		// obj1 が「Wall(壁)」かチェック
 		std::shared_ptr<Wall> wall = std::dynamic_pointer_cast<Wall>(obj1);
-		if (!wall) continue; // 壁じゃなければ次のオブジェクトへ
+		if (!wall) continue;
 
 		for (auto& obj2 : objList) {
 			if (obj1 == obj2) continue; // 自分自身との判定はスキップ
@@ -299,7 +295,7 @@ void GameScene::Update()
 			std::shared_ptr<Player> player = std::dynamic_pointer_cast<Player>(obj2);
 			std::shared_ptr<Enemy>  enemy = std::dynamic_pointer_cast<Enemy>(obj2);
 
-			if (!player && !enemy) continue; // どちらでもなければ次のオブジェクトへ
+			if (!player && !enemy) continue;
 
 			// 当たり判定を行う対象の「座標ポインタ」を用意
 			Math::Vector2* targetPos = nullptr;
