@@ -11,8 +11,10 @@ void GameScene::Init()
 	m_bulletTex.Load("Texture/Player/bullet.png");
 	m_enemyTexBrown.Load("Texture/Enemy/enemy_brown.png");
 	m_enemyTexAsh.Load("Texture/Enemy/enemy_ash.png");
-	m_wallTex.Load("Texture/Map/treeSmall.png");
+	m_wallTex.Load("Texture/Map/wall.png");
 	m_dirtTex.Load("Texture/Map/dirt.png");
+	m_breakableWallTex.Load("Texture/Map/breakwall.png");
+	m_holeTex.Load("Texture/Map/hole.png");
 
 	objList.clear();
 
@@ -46,6 +48,8 @@ void GameScene::Init()
 				else if (line[x] == '2') stageData[y][x] = 2; // プレイヤー
 				else if (line[x] == '3') stageData[y][x] = 3; // 敵（茶）
 				else if (line[x] == '4') stageData[y][x] = 4; // 敵（灰）
+                else if (line[x] == '5') stageData[y][x] = 5; // 壊せる壁
+				else if (line[x] == '6') stageData[y][x] = 6; // 穴
 			}
 			y++; // 次の行へ
 		}
@@ -84,6 +88,14 @@ void GameScene::Init()
 			else if (stageData[y][x] == 4) {
 				// 4: 灰色戦車の生成（動く）
 				objList.push_back(std::make_shared<Enemy>(posX, posY, &m_enemyTexAsh, EnemyType::Ash, m_player));
+			}
+			else if (stageData[y][x] == 5) {
+				// 壊せる壁用のテクスチャを別途用意するか、とりあえず既存のものを流用
+				objList.push_back(std::make_shared<BreakableWall>(posX, posY, &m_wallTex));
+			}
+			else if (stageData[y][x] == 6) {
+				// 穴用のテクスチャを別途用意
+				objList.push_back(std::make_shared<Hole>(posX, posY, &m_holeTex));
 			}
 		}
 	}
@@ -181,22 +193,38 @@ void GameScene::Update()
 			// チェック地点を計算
 			Math::Vector2 checkPos = rayPos + diff * currentDist;
 
-			// すべてのオブジェクトの中から壁（Wall）を探して衝突判定
-			for (auto& wallObj : objList) {
-				auto wall = std::dynamic_pointer_cast<Wall>(wallObj);
-				if (!wall) continue;
+			bool blocked = false;
 
-				// 壁との距離をチェック（壁のサイズ64に対して、32以内なら接触とみなす）
-				float dx = wall->pos.x - checkPos.x;
-				float dy = wall->pos.y - checkPos.y;
-				if (std::sqrt(dx * dx + dy * dy) < 30.0f) {
-					// 壁に遮られたらFalse
-					enemy->m_canSeePlayer = false;
-					break;
+			// すべてのオブジェクトの中から壁（Wall）と壊せる壁（BreakableWall）を探して衝突判定
+			for (auto& obstacleObj : objList) {
+				auto wall = std::dynamic_pointer_cast<Wall>(obstacleObj);
+				if (wall) {
+					// 壁との距離をチェック（壁のサイズ64に対して、32以内なら接触とみなす））
+					float dx = wall->pos.x - checkPos.x;
+					float dy = wall->pos.y - checkPos.y;
+					if (std::sqrt(dx * dx + dy * dy) < 30.0f) {
+						// 壁に遮られたらFalse
+						enemy->m_canSeePlayer = false;
+						blocked = true;
+						break;
+					}
+				}
+
+				auto breakableWall = std::dynamic_pointer_cast<BreakableWall>(obstacleObj);
+				if (breakableWall && !breakableWall->isDead) {
+					// 壊せる壁との距離をチェック
+					float dx = breakableWall->pos.x - checkPos.x;
+					float dy = breakableWall->pos.y - checkPos.y;
+					if (std::sqrt(dx * dx + dy * dy) < 30.0f) {
+						// 壊せる壁に遮られたらFalse
+						enemy->m_canSeePlayer = false;
+						blocked = true;
+						break;
+					}
 				}
 			}
 
-			if (!enemy->m_canSeePlayer) break; // すでに見えないならループ抜ける
+			if (blocked) break; // 何かに遮られたならループ抜ける
 			currentDist += checkStep;
 		}
 	}
@@ -262,7 +290,7 @@ void GameScene::Update()
 
 				// 横からぶつかったか、上下からぶつかったか（めり込み具合）を比較
 				if (dx > dy) {
-					// 横からぶつかった場合：X方向の移動を反転させる
+					// 横からぶつかった場合：X方向の移転を反転させる
 					bullet->OnHitWall(true);
 
 					// ★追加：壁の中にめり込んだ分だけ、強引に外へ押し出す！
@@ -270,7 +298,7 @@ void GameScene::Update()
 					else                             bullet->pos.x += (hitRange - dx);
 				}
 				else {
-					// 上下からぶつかった場合：Y方向の移動を反転させる
+					// 上下からぶつかった場合：Y方向の移転を反転させる
 					bullet->OnHitWall(false);
 
 					if (bullet->pos.y < wall->pos.y) bullet->pos.y -= (hitRange - dy);
@@ -283,54 +311,82 @@ void GameScene::Update()
 	}
 
 	// --- キャラクター（プレイヤー・敵）と壁の当たり判定（押し出し） ---
-	for (auto& obj1 : objList) {
-		// obj1 が「Wall(壁)」かチェック
-		std::shared_ptr<Wall> wall = std::dynamic_pointer_cast<Wall>(obj1);
-		if (!wall) continue;
+	// =========================================================
+// 全オブジェクト同士の総当たり判定
+// =========================================================
+	for (auto& objA : objList) {
+		for (auto& objB : objList) {
+			if (objA == objB) continue;
 
-		for (auto& obj2 : objList) {
-			if (obj1 == obj2) continue; // 自分自身との判定はスキップ
+			// ---------------------------------------------------------
+			// ① 自機・敵（戦車） vs 障害物（壁・壊せる壁・穴）のめり込み防止
+			// ---------------------------------------------------------
+			bool isTankA = std::dynamic_pointer_cast<Player>(objA) || std::dynamic_pointer_cast<Enemy>(objA);
 
-			// プレイヤーか敵かを確認するためのポインタ
-			std::shared_ptr<Player> player = std::dynamic_pointer_cast<Player>(obj2);
-			std::shared_ptr<Enemy>  enemy = std::dynamic_pointer_cast<Enemy>(obj2);
+			bool isObstacleB = std::dynamic_pointer_cast<Wall>(objB) ||
+				std::dynamic_pointer_cast<BreakableWall>(objB) ||
+				std::dynamic_pointer_cast<Hole>(objB); // 穴も障害物として扱う！
 
-			if (!player && !enemy) continue;
+			if (isTankA && isObstacleB) {
+				float radiusA = 24.0f; // 戦車の当たり判定サイズ
+				float radiusB = 32.0f; // 障害物の当たり判定サイズ
 
-			// 当たり判定を行う対象の「座標ポインタ」を用意
-			Math::Vector2* targetPos = nullptr;
+				float dx = objB->pos.x - objA->pos.x;
+				float dy = objB->pos.y - objA->pos.y;
+				float dist = std::sqrt(dx * dx + dy * dy);
 
-			//当たり判定範囲
-			float hitRange = 64.0f;
-
-			if (player) targetPos = &player->pos;
-			if (enemy)  targetPos = &enemy->pos;
-
-			if (targetPos == nullptr) continue;
-
-			// 対象と壁の中心座標の距離（絶対値）を計算
-			float dx = abs(targetPos->x - wall->pos.x);
-			float dy = abs(targetPos->y - wall->pos.y);
-
-			// X軸とY軸の距離がどちらも hitRange 未満なら「当たっている（めり込んでいる）」
-			if (dx < hitRange && dy < hitRange) {
-
-				// 横からぶつかったか、上下からぶつかったか（めり込み具合）を比較
-				if (dx > dy) {
-					// 横方向の押し出し
-					if (targetPos->x < wall->pos.x) targetPos->x -= (hitRange - dx);
-					else                            targetPos->x += (hitRange - dx);
+				// 当たって（めり込んで）いたら押し出す
+				if (dist > 0.0f && dist < (radiusA + radiusB)) {
+					float overlap = (radiusA + radiusB) - dist;
+					float nx = dx / dist;
+					float ny = dy / dist;
+					objA->pos.x -= nx * overlap;
+					objA->pos.y -= ny * overlap;
 				}
-				else {
-					// 上下方向の押し出し
-					if (targetPos->y < wall->pos.y) targetPos->y -= (hitRange - dy);
-					else                            targetPos->y += (hitRange - dy);
+			}
+
+			// ---------------------------------------------------------
+			// ② 弾 vs 壊せる壁 の判定
+			// ---------------------------------------------------------
+			if (auto bullet = std::dynamic_pointer_cast<Bullet>(objA)) {
+
+				// 壊せる壁に当たった時
+				if (auto bWall = std::dynamic_pointer_cast<BreakableWall>(objB)) {
+					float dx = std::abs(bullet->pos.x - bWall->pos.x);
+					float dy = std::abs(bullet->pos.y - bWall->pos.y);
+					float hitRange = 40.0f;
+
+					// 弾が壊せる壁にヒットしたら両方消滅する
+					if (dx < hitRange && dy < hitRange) {
+						bullet->isDead = true;
+						bWall->isDead = true;
+					}
 				}
+
+				// 普通の壁に当たった時（ここで弾を反射させる処理を呼ぶ）
+				// if (auto wall = std::dynamic_pointer_cast<Wall>(objB)) {
+				//     bullet->OnHitWall(...); 
+				// }
+
+				// 穴(Hole)に当たった時は何もしないため、弾はスルー（通過）します
 			}
 		}
 	}
 
-	//自機と敵の弾の当たり判定
+	// --- 戦車と壁・穴の衝突判定 ---
+	for (auto& obj : objList) {
+		// 壁、壊せる壁、穴のいずれかであるか
+		bool isObstacle = std::dynamic_pointer_cast<Wall>(obj) ||
+			std::dynamic_pointer_cast<BreakableWall>(obj) ||
+			std::dynamic_pointer_cast<Hole>(obj);
+
+		if (isObstacle) {
+			// ここで自機や敵との円vs矩形、あるいは円vs円の押し出し処理を行う
+			// 現状の実装（円同士の押し出しなど）をそのまま適用すれば、穴も「壁」として機能します
+		}
+	}
+
+	// 自機と敵の弾の当たり判定
 	for (auto& objA : objList)
 	{
 		for (auto& objB : objList)
@@ -416,9 +472,35 @@ void GameScene::Update()
 		}
 	}
 
+	// 弾と壊せる壁・穴の当たり判定（objA/objB 未定義エラーと std::dynamic_pointer_cast の不一致を解消）
+	for (auto& obj1 : objList) {
+		auto bullet = std::dynamic_pointer_cast<Bullet>(obj1);
+		if (!bullet) continue;
+
+		for (auto& obj2 : objList) {
+			if (obj1 == obj2) continue;
+			if (obj2->isDead) continue;
+
+			// 壊せる壁との判定
+			if (auto bWall = std::dynamic_pointer_cast<BreakableWall>(obj2)) {
+				float dx = abs(bullet->pos.x - bWall->pos.x);
+				float dy = abs(bullet->pos.y - bWall->pos.y);
+				float hitRange = 40.0f;
+				if (dx < hitRange && dy < hitRange) {
+					bullet->isDead = true;
+					bWall->isDead = true; // 壁も消える！
+					break;
+				}
+			}
+
+			// 穴（Hole）との判定 (通過するため何もしない)
+			// if (auto hole = std::dynamic_pointer_cast<Hole>(obj2)) { /* 通過 */ }
+		}
+	}
+
 	auto it = std::remove_if(objList.begin(), objList.end(), [](std::shared_ptr<GameObject> obj) {
 		return obj->isDead;
-		});
+	});
 	objList.erase(it, objList.end());
 
 	//ステージクリアチェック
@@ -454,9 +536,35 @@ void GameScene::Draw()
 		}
 	}
 
+	// 戦車以外のオブジェクトを描画
+	std::shared_ptr<Player> playerPtr = nullptr;
+	std::vector<std::shared_ptr<Enemy>> enemyPtrs;
+
 	for (auto& obj : objList)
 	{
+		auto player = std::dynamic_pointer_cast<Player>(obj);
+		if (player) {
+			playerPtr = player;
+			continue;
+		}
+
+		auto enemy = std::dynamic_pointer_cast<Enemy>(obj);
+		if (enemy) {
+			enemyPtrs.push_back(enemy);
+			continue;
+		}
+
+		// 戦車以外のオブジェクト（弾、壁、壊せる壁など）を描画
 		obj->Draw();
+	}
+
+	// 戦車を最後に描画（自機と敵が最前面に表示される）
+	if (playerPtr) {
+		playerPtr->Draw();
+	}
+
+	for (auto& enemy : enemyPtrs) {
+		enemy->Draw();
 	}
 
 	std::string scoreStr = "SCORE: " + std::to_string(m_score);

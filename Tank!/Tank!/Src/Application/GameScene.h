@@ -5,6 +5,9 @@
 #include "Enemy.h"
 #include "Bullet.h"
 #include "Wall.h"
+#include "BreakableWall.h"
+#include "Hole.h"
+
 class GameScene : public Scene
 {
 	std::shared_ptr<Player> m_player;
@@ -14,6 +17,8 @@ class GameScene : public Scene
 	KdTexture m_enemyTexAsh;   // 灰色の敵用
 	KdTexture m_wallTex;
 	KdTexture m_dirtTex;
+	KdTexture m_holeTex;
+	KdTexture m_breakableWallTex;
 
 	int m_shootTimer = 0;
 

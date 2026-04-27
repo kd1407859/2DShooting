@@ -159,11 +159,13 @@
     <ClInclude Include="..\Library\tinygltf\stb_image.h" />
     <ClInclude Include="..\Library\tinygltf\stb_image_write.h" />
     <ClInclude Include="..\Library\tinygltf\tiny_gltf.h" />
+    <ClInclude Include="Src\Application\BreakableWall.h" />
     <ClInclude Include="Src\Application\Bullet.h" />
     <ClInclude Include="Src\Application\Enemy.h" />
     <ClInclude Include="Src\Application\GameObject.h" />
     <ClInclude Include="Src\Application\GameOverScene.h" />
     <ClInclude Include="Src\Application\GameScene.h" />
+    <ClInclude Include="Src\Application\Hole.h" />
     <ClInclude Include="Src\Application\Player.h" />
     <ClInclude Include="Src\Application\Scene.h" />
     <ClInclude Include="Src\Application\main.h" />
@@ -193,10 +195,12 @@
     <ClCompile Include="..\Library\imgui\imgui_impl_dx11.cpp" />
     <ClCompile Include="..\Library\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="..\Library\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="Src\Application\BreakableWall.cpp" />
     <ClCompile Include="Src\Application\Bullet.cpp" />
     <ClCompile Include="Src\Application\Enemy.cpp" />
     <ClCompile Include="Src\Application\GameObject.cpp" />
     <ClCompile Include="Src\Application\GameScene.cpp" />
+    <ClCompile Include="Src\Application\Hole.cpp" />
     <ClCompile Include="Src\Application\Player.cpp" />
     <ClCompile Include="Src\Application\Scene.cpp" />
     <ClCompile Include="Src\Application\main.cpp" />
