@@ -169,11 +169,6 @@ void GameScene::Update()
 		}
 	}
 
-	// クールダウンの減少処理
-	/*if (m_shootTimer > 0) {
-		m_shootTimer--;
-	}*/
-
 	//敵の視線判定(レイキャスト)
 	for (auto& obj : objList) {
 		auto enemy = std::dynamic_pointer_cast<Enemy>(obj);

@@ -63,6 +63,24 @@ void Enemy::Update()
 		}
 	}
 
+	// タイトル画面専用の敵戦車の処理(灰色限定)
+	if (!m_targetPlayer)
+	{
+		if (m_type == EnemyType::Ash)
+		{
+			m_moveTimer--;
+			if (m_moveTimer <= 0)
+			{
+				m_moveTimer = 60 + (rand() % 120);
+				m_angle = (float)(rand() % 360);
+			}
+
+			float rad = m_angle * (3.14159265f / 180.0f);
+			float speed = 1.5f;
+			pos.x += -sin(rad) * speed;
+			pos.y += cos(rad) * speed;
+		}
+	}
 
 	//画面端判定
 	if (pos.x < SCREEN_LEFT + 50) {
