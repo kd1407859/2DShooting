@@ -28,3 +28,13 @@ void SceneManager::Draw()
 		m_currentScene->Draw();
 	}
 }
+
+void SceneManager::ChangeScene(Scene* newScene)
+{
+	if (m_currentScene) {
+		m_currentScene->Release();
+		delete m_currentScene;
+	}
+	m_currentScene = newScene;
+	m_currentScene->Init();
+}

@@ -19,14 +19,7 @@ public:
 	void Draw();
 
 	// ƒV[ƒ“Ø‚è‘Ö‚¦ŠÖ”
-	void ChangeScene(Scene* newScene) {
-		if (m_currentScene) {
-			m_currentScene->Release();
-			delete m_currentScene;
-		}
-		m_currentScene = newScene;
-		m_currentScene->Init();
-	}
+	void ChangeScene(Scene* newScene);
 };
 
 #define SCENE_MGR SceneManager::GetInstance()

@@ -5,18 +5,7 @@ class Hole : public GameObject
 {
     KdTexture* m_pTex = nullptr;
 public:
-    Hole(float x, float y, KdTexture* tex) {
-        pos = { x, y };
-        m_pTex = tex;
-    }
+    Hole(float x, float y, KdTexture* tex);
 
-    void Draw() override {
-        if (!m_pTex) return;
-
-        Math::Rectangle rect = { 0, 0, 64, 64 };
-        // 穴専用のテクスチャ（少し暗い色など）を指定
-        Math::Matrix worldMat = Math::Matrix::CreateTranslation(pos.x, pos.y, 0);
-        SHADER.m_spriteShader.SetMatrix(worldMat);
-        SHADER.m_spriteShader.DrawTex(m_pTex, 0, 0, &rect);
-    }
+    void Draw() override;
 };

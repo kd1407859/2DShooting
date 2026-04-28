@@ -30,10 +30,8 @@ private:
 	int m_currentStage;
 public:
 
-	GameScene(int stageNum = 1)
-	{
-		m_currentStage = stageNum;
-	}
+	GameScene(int stageNum = 1);
+	
 
 	void Init() override;
 	

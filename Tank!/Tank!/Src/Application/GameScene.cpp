@@ -3,6 +3,11 @@
 #include "SceneManager.h"
 
 
+GameScene::GameScene(int stageNum)
+{
+	m_currentStage = stageNum;
+}
+
 void GameScene::Init()
 {
 	
@@ -165,9 +170,9 @@ void GameScene::Update()
 	}
 
 	// クールダウンの減少処理
-	if (m_shootTimer > 0) {
+	/*if (m_shootTimer > 0) {
 		m_shootTimer--;
-	}
+	}*/
 
 	//敵の視線判定(レイキャスト)
 	for (auto& obj : objList) {
