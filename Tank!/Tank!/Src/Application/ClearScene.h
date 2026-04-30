@@ -1,9 +1,9 @@
 #pragma once
 #include "Scene.h"
 
-class GameOverScene : public Scene
+class ClearScene : public Scene
 {
-	KdTexture m_gameOverTex;
+	KdTexture m_clearTex;
 	KdTexture m_pressEnterTex;
 	KdTexture m_dirtTex;
 	KdTexture m_wallTex;
@@ -19,8 +19,8 @@ class GameOverScene : public Scene
 
 public:
 
-	GameOverScene(int score);
-	~GameOverScene();
+	ClearScene(int score);
+	~ClearScene();
 
 	void Init()    override;
 	void Update()  override;

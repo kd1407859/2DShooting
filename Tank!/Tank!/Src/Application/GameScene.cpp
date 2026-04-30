@@ -1,7 +1,17 @@
 #include "GameScene.h"
 #include "GameOverScene.h"
+#include "GameObject.h"
+#include "Player.h"
+#include "Enemy.h"
+#include "Wall.h"
+#include "BreakableWall.h"
+#include "Hole.h"
+#include "Bullet.h"
 #include "SceneManager.h"
-
+#include "PauseScene.h"
+#include "ClearScene.h"
+#include "InputManager.h"
+#include "main.h"
 
 GameScene::GameScene(int stageNum)
 {
@@ -10,7 +20,7 @@ GameScene::GameScene(int stageNum)
 
 void GameScene::Init()
 {
-	
+
 	srand((unsigned int)time(NULL));
 
 	m_bulletTex.Load("Texture/Player/bullet.png");
@@ -28,37 +38,37 @@ void GameScene::Init()
 	const float CHIP_SIZE = 64.0f;
 	const float chipshiftdown = 24.0f;
 
-	// ‡@ ”z—ñ“à‚ğ‹ó”’‚É‚µ‚Ä‚¨‚­
+
 	int stageData[MAP_H][MAP_W] = { 0 };
 
 	std::string fileName = "Texture/Map/stage" + std::to_string(m_currentStage) + ".txt";
 
-	// ‡A ƒeƒLƒXƒgƒtƒ@ƒCƒ‹‚ğŠJ‚­
+
 	std::ifstream file(fileName);
 
-	// ‡B ƒtƒ@ƒCƒ‹‚ªŠJ‚¯‚½ê‡‚Ì‚İ“Ç‚İ‚Ş
+
 	if (file.is_open())
 	{
 		std::string line;
 		int y = 0;
 
-		// ƒtƒ@ƒCƒ‹‚©‚ç1s‚¸‚Â•¶š‚ğ“Ç‚İ‚Ş
+
 		while (std::getline(file, line) && y < MAP_H)
 		{
-			// 1s‚Ì’†‚Ì•¶š‚ğ¶‚©‚ç‡”Ô‚Éƒ`ƒFƒbƒN
+
 			for (int x = 0; x < MAP_W && x < line.length(); x++)
 			{
-				// •¶š‚É‰‚¶‚Ä”z—ñ‚É”š‚ğ“ü‚ê‚é
-				if (line[x] == '1') stageData[y][x] = 1; // •Ç
-				else if (line[x] == '2') stageData[y][x] = 2; // ƒvƒŒƒCƒ„[
-				else if (line[x] == '3') stageData[y][x] = 3; // “Gi’ƒj
-				else if (line[x] == '4') stageData[y][x] = 4; // “GiŠDj
-                else if (line[x] == '5') stageData[y][x] = 5; // ‰ó‚¹‚é•Ç
-				else if (line[x] == '6') stageData[y][x] = 6; // ŒŠ
+
+				if (line[x] == '1') stageData[y][x] = 1;
+				else if (line[x] == '2') stageData[y][x] = 2;
+				else if (line[x] == '3') stageData[y][x] = 3;
+				else if (line[x] == '4') stageData[y][x] = 4; // ï¿½Gï¿½iï¿½Dï¿½j
+				else if (line[x] == '5') stageData[y][x] = 5; // ï¿½ó‚¹‚ï¿½ï¿½
+				else if (line[x] == '6') stageData[y][x] = 6; // ï¿½ï¿½
 			}
-			y++; // Ÿ‚Ìs‚Ö
+			y++;
 		}
-		file.close(); // “Ç‚İI‚í‚Á‚½‚çƒtƒ@ƒCƒ‹‚ğ•Â‚¶‚é
+		file.close();
 	}
 	else
 	{
@@ -70,36 +80,36 @@ void GameScene::Init()
 	m_player = std::make_shared<Player>();
 	objList.push_back(m_player);
 
-	// •ÇEƒvƒŒƒCƒ„[E“G‚ğ”z’u
+
 	for (int y = 0; y < MAP_H; y++) {
 		for (int x = 0; x < MAP_W; x++) {
 
-			
+
 			float posX = SCREEN_LEFT + (x * CHIP_SIZE) + (CHIP_SIZE / 2.0f);
 			float posY = SCREEN_TOP - (y * CHIP_SIZE) - (CHIP_SIZE / 2.0f) + chipshiftdown;
 
 			if (stageData[y][x] == 1) {
-				// 1: •Ç‚Ì¶¬
+				
 				objList.push_back(std::make_shared<Wall>(posX, posY, &m_wallTex));
 			}
 			else if (stageData[y][x] == 2) {
-				// 2: ƒvƒŒƒCƒ„[‚Ì‰ŠúˆÊ’u‚ğƒ}ƒbƒvƒf[ƒ^‚É‡‚í‚¹‚ÄˆÚ“®‚³‚¹‚é
+			
 				m_player->pos = { posX, posY };
 			}
 			else if (stageData[y][x] == 3) {
-				// 3: ’ƒFíÔ‚Ì¶¬i“®‚©‚È‚¢j
+				
 				objList.push_back(std::make_shared<Enemy>(posX, posY, &m_enemyTexBrown, EnemyType::Brown, m_player));
 			}
 			else if (stageData[y][x] == 4) {
-				// 4: ŠDFíÔ‚Ì¶¬i“®‚­j
+				
 				objList.push_back(std::make_shared<Enemy>(posX, posY, &m_enemyTexAsh, EnemyType::Ash, m_player));
 			}
 			else if (stageData[y][x] == 5) {
-				// ‰ó‚¹‚é•Ç—p‚ÌƒeƒNƒXƒ`ƒƒ‚ğ•Ê“r—pˆÓ‚·‚é‚©A‚Æ‚è‚ ‚¦‚¸Šù‘¶‚Ì‚à‚Ì‚ğ—¬—p
-				objList.push_back(std::make_shared<BreakableWall>(posX, posY, &m_wallTex));
+
+				objList.push_back(std::make_shared<BreakableWall>(posX, posY, &m_breakableWallTex));
 			}
 			else if (stageData[y][x] == 6) {
-				// ŒŠ—p‚ÌƒeƒNƒXƒ`ƒƒ‚ğ•Ê“r—pˆÓ
+				
 				objList.push_back(std::make_shared<Hole>(posX, posY, &m_holeTex));
 			}
 		}
@@ -114,24 +124,30 @@ void GameScene::Init()
 
 void GameScene::Update()
 {
+	// Pã‚­ãƒ¼ã§ãƒãƒ¼ã‚ºç”»é¢ã«é·ç§»
+	if (InputManager::GetInstance().IsKeyPressed('P'))
+	{
+		SceneManager::GetInstance().ChangeScene(new PauseScene(m_currentStage));
+		return;
+	}
+
 	m_shootTimer--;
 
 	m_spawnTimer--;
 
 	int playerBulletCount = 0;
-	const int MAX_PLAYER_BULLETS = 5; //“¯‚Éo‚¹‚é’e‚ÌãŒÀ
-
+	const int MAX_PLAYER_BULLETS = 5;
 	for (auto& obj : objList) {
-		// ƒIƒuƒWƒFƒNƒg‚ªu’e (Bullet)v‚Å‚ ‚é‚©ƒ`ƒFƒbƒN
+
 		if (auto bullet = std::dynamic_pointer_cast<Bullet>(obj)) {
-			// ‚»‚ê‚ªu“G‚Ì’e‚Å‚Í‚È‚¢iƒvƒŒƒCƒ„[‚Ì’ejv‚©‚Âu‚Ü‚¾Á–Å‚µ‚Ä‚¢‚È‚¢v‚È‚çƒJƒEƒ“ƒg
+
 			if (bullet->isEnemy == false && bullet->isDead == false) {
 				playerBulletCount++;
 			}
 		}
 	}
 
-	// --- ƒvƒŒƒCƒ„[‚Ì”­Ë ---
+	
 	if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) && m_shootTimer <= 0 && playerBulletCount < MAX_PLAYER_BULLETS)
 	{
 		if (m_shootTimer <= 0)
@@ -169,41 +185,39 @@ void GameScene::Update()
 		}
 	}
 
-	//“G‚Ì‹ü”»’è(ƒŒƒCƒLƒƒƒXƒg)
 	for (auto& obj : objList) {
 		auto enemy = std::dynamic_pointer_cast<Enemy>(obj);
 		if (!enemy) continue;
 
-		// --- ‹ü”»’èiLine of Sightj ---
-		// Šî–{‚ÍŒ©‚¦‚Ä‚¢‚é‚Æ‰¼’è‚·‚é
+		
 		enemy->m_canSeePlayer = true;
 
-		// “G‚©‚çƒvƒŒƒCƒ„[‚Ö‚ÌƒxƒNƒgƒ‹
+		
 		Math::Vector2 rayPos = enemy->pos;
 		Math::Vector2 targetPos = m_player->pos;
 		Math::Vector2 diff = targetPos - rayPos;
 		float distToPlayer = diff.Length();
 		diff.Normalize();
 
-		// “G‚©‚çƒvƒŒƒCƒ„[‚ÉŒü‚©‚Á‚ÄA­‚µ‚¸‚Âi—á‚¦‚Î32ƒsƒNƒZƒ‹‚¸‚Âji‚ñ‚Å•Ç‚É“–‚½‚é‚©’²‚×‚é
+		
 		float checkStep = 32.0f;
 		float currentDist = checkStep;
 
 		while (currentDist < distToPlayer) {
-			// ƒ`ƒFƒbƒN’n“_‚ğŒvZ
+			
 			Math::Vector2 checkPos = rayPos + diff * currentDist;
 
 			bool blocked = false;
 
-			// ‚·‚×‚Ä‚ÌƒIƒuƒWƒFƒNƒg‚Ì’†‚©‚ç•ÇiWallj‚Æ‰ó‚¹‚é•ÇiBreakableWallj‚ğ’T‚µ‚ÄÕ“Ë”»’è
+			
 			for (auto& obstacleObj : objList) {
 				auto wall = std::dynamic_pointer_cast<Wall>(obstacleObj);
 				if (wall) {
-					// •Ç‚Æ‚Ì‹——£‚ğƒ`ƒFƒbƒNi•Ç‚ÌƒTƒCƒY64‚É‘Î‚µ‚ÄA32ˆÈ“à‚È‚çÚG‚Æ‚İ‚È‚·jj
+					
 					float dx = wall->pos.x - checkPos.x;
 					float dy = wall->pos.y - checkPos.y;
 					if (std::sqrt(dx * dx + dy * dy) < 30.0f) {
-						// •Ç‚ÉÕ‚ç‚ê‚½‚çFalse
+						
 						enemy->m_canSeePlayer = false;
 						blocked = true;
 						break;
@@ -212,11 +226,11 @@ void GameScene::Update()
 
 				auto breakableWall = std::dynamic_pointer_cast<BreakableWall>(obstacleObj);
 				if (breakableWall && !breakableWall->isDead) {
-					// ‰ó‚¹‚é•Ç‚Æ‚Ì‹——£‚ğƒ`ƒFƒbƒN
+					
 					float dx = breakableWall->pos.x - checkPos.x;
 					float dy = breakableWall->pos.y - checkPos.y;
 					if (std::sqrt(dx * dx + dy * dy) < 30.0f) {
-						// ‰ó‚¹‚é•Ç‚ÉÕ‚ç‚ê‚½‚çFalse
+						
 						enemy->m_canSeePlayer = false;
 						blocked = true;
 						break;
@@ -224,15 +238,13 @@ void GameScene::Update()
 				}
 			}
 
-			if (blocked) break; // ‰½‚©‚ÉÕ‚ç‚ê‚½‚È‚çƒ‹[ƒv”²‚¯‚é
+			if (blocked) break; 
 			currentDist += checkStep;
 		}
 	}
 
-	// --- ‘SƒIƒuƒWƒFƒNƒgXV & “G‚Ì”­Ëƒ`ƒFƒbƒN ---
 	std::vector<std::shared_ptr<GameObject>> newObjects;
 
-	// ‘SƒIƒuƒWƒFƒNƒg‚ÌXV
 	for (auto& obj : objList)
 	{
 		obj->Update();
@@ -264,41 +276,36 @@ void GameScene::Update()
 		objList.push_back(newObj);
 	}
 
-
-	
-
-	// ‚·‚×‚Ä‚ÌƒIƒuƒWƒFƒNƒg‚Ì’†‚©‚çu’ev‚Æu•Çv‚ÌƒyƒA‚ğ’T‚µ‚Ä“–‚½‚è”»’è
 	for (auto& obj1 : objList) {
-		// dynamic_pointer_cast ‚Å obj1 ‚ªuBullet(’e)v‚©ƒ`ƒFƒbƒN
+
 		std::shared_ptr<Bullet> bullet = std::dynamic_pointer_cast<Bullet>(obj1);
-		if (!bullet) continue; // ’e‚¶‚á‚È‚¯‚ê‚ÎŸ‚ÌƒIƒuƒWƒFƒNƒg‚Ö
+		if (!bullet) continue;
 
 		for (auto& obj2 : objList) {
-			// obj2 ‚ªuWall(•Ç)v‚©ƒ`ƒFƒbƒN
-			std::shared_ptr<Wall> wall = std::dynamic_pointer_cast<Wall>(obj2);
-			if (!wall) continue; // •Ç‚¶‚á‚È‚¯‚ê‚ÎŸ‚ÌƒIƒuƒWƒFƒNƒg‚Ö
 
-			// ’e‚Æ•Ç‚Ì’†SÀ•W‚Ì‹——£iâ‘Î’lj‚ğŒvZ
+			std::shared_ptr<Wall> wall = std::dynamic_pointer_cast<Wall>(obj2);
+			if (!wall) continue;
+
+
 			float dx = abs(bullet->pos.x - wall->pos.x);
 			float dy = abs(bullet->pos.y - wall->pos.y);
 
-			// •Ç‚ÌƒTƒCƒY‚Í64x64(”¼•ª‚Å32)A’e‚ÌƒTƒCƒY‚ğ‰¼‚É16x16(”¼•ª‚Å8)‚Æ‚µ‚Ü‚·B
-			// “–‚½‚è”»’è‚Ì”ÍˆÍ‚Í 32 + 8 = 40.0f
+
 			float hitRange = 40.0f;
 
 			if (dx < hitRange && dy < hitRange) {
 
-				// ‰¡‚©‚ç‚Ô‚Â‚©‚Á‚½‚©Aã‰º‚©‚ç‚Ô‚Â‚©‚Á‚½‚©i‚ß‚è‚İ‹ï‡j‚ğ”äŠr
+				
 				if (dx > dy) {
-					// ‰¡‚©‚ç‚Ô‚Â‚©‚Á‚½ê‡FX•ûŒü‚ÌˆÚ“]‚ğ”½“]‚³‚¹‚é
+				
 					bullet->OnHitWall(true);
 
-					// š’Ç‰ÁF•Ç‚Ì’†‚É‚ß‚è‚ñ‚¾•ª‚¾‚¯A‹­ˆø‚ÉŠO‚Ö‰Ÿ‚µo‚·I
+					
 					if (bullet->pos.x < wall->pos.x) bullet->pos.x -= (hitRange - dx);
 					else                             bullet->pos.x += (hitRange - dx);
 				}
 				else {
-					// ã‰º‚©‚ç‚Ô‚Â‚©‚Á‚½ê‡FY•ûŒü‚ÌˆÚ“]‚ğ”½“]‚³‚¹‚é
+				
 					bullet->OnHitWall(false);
 
 					if (bullet->pos.y < wall->pos.y) bullet->pos.y -= (hitRange - dy);
@@ -310,32 +317,26 @@ void GameScene::Update()
 		}
 	}
 
-	// --- ƒLƒƒƒ‰ƒNƒ^[iƒvƒŒƒCƒ„[E“Gj‚Æ•Ç‚Ì“–‚½‚è”»’èi‰Ÿ‚µo‚µj ---
-	// =========================================================
-// ‘SƒIƒuƒWƒFƒNƒg“¯m‚Ì‘“–‚½‚è”»’è
-// =========================================================
 	for (auto& objA : objList) {
 		for (auto& objB : objList) {
 			if (objA == objB) continue;
 
-			// ---------------------------------------------------------
-			// ‡@ ©‹@E“GiíÔj vs áŠQ•¨i•ÇE‰ó‚¹‚é•ÇEŒŠj‚Ì‚ß‚è‚İ–h~
-			// ---------------------------------------------------------
+
 			bool isTankA = std::dynamic_pointer_cast<Player>(objA) || std::dynamic_pointer_cast<Enemy>(objA);
 
 			bool isObstacleB = std::dynamic_pointer_cast<Wall>(objB) ||
 				std::dynamic_pointer_cast<BreakableWall>(objB) ||
-				std::dynamic_pointer_cast<Hole>(objB); // ŒŠ‚àáŠQ•¨‚Æ‚µ‚Äˆµ‚¤I
+				std::dynamic_pointer_cast<Hole>(objB);
 
 			if (isTankA && isObstacleB) {
-				float radiusA = 24.0f; // íÔ‚Ì“–‚½‚è”»’èƒTƒCƒY
-				float radiusB = 32.0f; // áŠQ•¨‚Ì“–‚½‚è”»’èƒTƒCƒY
+				float radiusA = 24.0f;
+				float radiusB = 32.0f; 
 
 				float dx = objB->pos.x - objA->pos.x;
 				float dy = objB->pos.y - objA->pos.y;
 				float dist = std::sqrt(dx * dx + dy * dy);
 
-				// “–‚½‚Á‚Äi‚ß‚è‚ñ‚Åj‚¢‚½‚ç‰Ÿ‚µo‚·
+
 				if (dist > 0.0f && dist < (radiusA + radiusB)) {
 					float overlap = (radiusA + radiusB) - dist;
 					float nx = dx / dist;
@@ -345,48 +346,38 @@ void GameScene::Update()
 				}
 			}
 
-			// ---------------------------------------------------------
-			// ‡A ’e vs ‰ó‚¹‚é•Ç ‚Ì”»’è
-			// ---------------------------------------------------------
+
 			if (auto bullet = std::dynamic_pointer_cast<Bullet>(objA)) {
 
-				// ‰ó‚¹‚é•Ç‚É“–‚½‚Á‚½
+
 				if (auto bWall = std::dynamic_pointer_cast<BreakableWall>(objB)) {
 					float dx = std::abs(bullet->pos.x - bWall->pos.x);
 					float dy = std::abs(bullet->pos.y - bWall->pos.y);
 					float hitRange = 40.0f;
 
-					// ’e‚ª‰ó‚¹‚é•Ç‚Éƒqƒbƒg‚µ‚½‚ç—¼•ûÁ–Å‚·‚é
 					if (dx < hitRange && dy < hitRange) {
 						bullet->isDead = true;
 						bWall->isDead = true;
 					}
 				}
 
-				// •’Ê‚Ì•Ç‚É“–‚½‚Á‚½i‚±‚±‚Å’e‚ğ”½Ë‚³‚¹‚éˆ—‚ğŒÄ‚Ôj
-				// if (auto wall = std::dynamic_pointer_cast<Wall>(objB)) {
-				//     bullet->OnHitWall(...); 
-				// }
-
-				// ŒŠ(Hole)‚É“–‚½‚Á‚½‚Í‰½‚à‚µ‚È‚¢‚½‚ßA’e‚ÍƒXƒ‹[i’Ê‰ßj‚µ‚Ü‚·
 			}
 		}
 	}
 
-	// --- íÔ‚Æ•ÇEŒŠ‚ÌÕ“Ë”»’è ---
+
 	for (auto& obj : objList) {
-		// •ÇA‰ó‚¹‚é•ÇAŒŠ‚Ì‚¢‚¸‚ê‚©‚Å‚ ‚é‚©
+
 		bool isObstacle = std::dynamic_pointer_cast<Wall>(obj) ||
 			std::dynamic_pointer_cast<BreakableWall>(obj) ||
 			std::dynamic_pointer_cast<Hole>(obj);
 
 		if (isObstacle) {
-			// ‚±‚±‚Å©‹@‚â“G‚Æ‚Ì‰~vs‹éŒ`A‚ ‚é‚¢‚Í‰~vs‰~‚Ì‰Ÿ‚µo‚µˆ—‚ğs‚¤
-			// Œ»ó‚ÌÀ‘•i‰~“¯m‚Ì‰Ÿ‚µo‚µ‚È‚Çj‚ğ‚»‚Ì‚Ü‚Ü“K—p‚·‚ê‚ÎAŒŠ‚àu•Çv‚Æ‚µ‚Ä‹@”\‚µ‚Ü‚·
+
 		}
 	}
 
-	// ©‹@‚Æ“G‚Ì’e‚Ì“–‚½‚è”»’è
+
 	for (auto& objA : objList)
 	{
 		for (auto& objB : objList)
@@ -430,16 +421,16 @@ void GameScene::Update()
 		}
 	}
 
-	//©‹@‚Æ“G‚Ì“–‚½‚è”»’è
+
 	for (size_t i = 0; i < objList.size(); i++) {
 		for (size_t j = i + 1; j < objList.size(); j++) {
 			auto objA = objList[i];
 			auto objB = objList[j];
 
-			// ‚¨Œİ‚¢‚ª¶‚«‚Ä‚¢‚é‚©ƒ`ƒFƒbƒN
+
 			if (objA->isDead || objB->isDead) continue;
 
-			// ‘ÎÛ‚ªuƒvƒŒƒCƒ„[v‚©u“Gv‚©‚ğ”»’è
+
 			bool isTankA = std::dynamic_pointer_cast<Player>(objA) || std::dynamic_pointer_cast<Enemy>(objA);
 			bool isTankB = std::dynamic_pointer_cast<Player>(objB) || std::dynamic_pointer_cast<Enemy>(objB);
 
@@ -449,16 +440,16 @@ void GameScene::Update()
 				float dy = objB->pos.y - objA->pos.y;
 				float dist = std::sqrt(dx * dx + dy * dy);
 
-				// íÔ‚Ì“–‚½‚è”»’è‚Ì”¼Œa
+
 				float radiusA = 20.0f;
 				float radiusB = 20.0f;
 
 				if (dist > 0.0f && dist < (radiusA + radiusB)) {
 
-					// ‚ß‚è‚ñ‚Å‚¢‚é’·‚³
+
 					float overlap = (radiusA + radiusB) - dist;
 
-					// ‰Ÿ‚µo‚·•ûŒü‚ğŒvZ
+
 					float nx = dx / dist;
 					float ny = dy / dist;
 
@@ -472,7 +463,7 @@ void GameScene::Update()
 		}
 	}
 
-	// ’e‚Æ‰ó‚¹‚é•ÇEŒŠ‚Ì“–‚½‚è”»’èiobjA/objB –¢’è‹`ƒGƒ‰[‚Æ std::dynamic_pointer_cast ‚Ì•sˆê’v‚ğ‰ğÁj
+
 	for (auto& obj1 : objList) {
 		auto bullet = std::dynamic_pointer_cast<Bullet>(obj1);
 		if (!bullet) continue;
@@ -481,29 +472,28 @@ void GameScene::Update()
 			if (obj1 == obj2) continue;
 			if (obj2->isDead) continue;
 
-			// ‰ó‚¹‚é•Ç‚Æ‚Ì”»’è
+
 			if (auto bWall = std::dynamic_pointer_cast<BreakableWall>(obj2)) {
 				float dx = abs(bullet->pos.x - bWall->pos.x);
 				float dy = abs(bullet->pos.y - bWall->pos.y);
 				float hitRange = 40.0f;
 				if (dx < hitRange && dy < hitRange) {
 					bullet->isDead = true;
-					bWall->isDead = true; // •Ç‚àÁ‚¦‚éI
+					bWall->isDead = true;
 					break;
 				}
 			}
 
-			// ŒŠiHolej‚Æ‚Ì”»’è (’Ê‰ß‚·‚é‚½‚ß‰½‚à‚µ‚È‚¢)
-			// if (auto hole = std::dynamic_pointer_cast<Hole>(obj2)) { /* ’Ê‰ß */ }
+
 		}
 	}
 
 	auto it = std::remove_if(objList.begin(), objList.end(), [](std::shared_ptr<GameObject> obj) {
 		return obj->isDead;
-	});
+		});
 	objList.erase(it, objList.end());
 
-	//ƒXƒe[ƒWƒNƒŠƒAƒ`ƒFƒbƒN
+
 	int enemyCount = 0;
 
 	for (auto& obj : objList) {
@@ -532,11 +522,11 @@ void GameScene::Draw()
 
 			Math::Matrix mat = Math::Matrix::CreateTranslation(posX, posY, 0.0f);
 			SHADER.m_spriteShader.SetMatrix(mat);
-			SHADER.m_spriteShader.DrawTex(&m_dirtTex, 0, 0,&srcRect);
+			SHADER.m_spriteShader.DrawTex(&m_dirtTex, 0, 0, &srcRect);
 		}
 	}
 
-	// íÔˆÈŠO‚ÌƒIƒuƒWƒFƒNƒg‚ğ•`‰æ
+
 	std::shared_ptr<Player> playerPtr = nullptr;
 	std::vector<std::shared_ptr<Enemy>> enemyPtrs;
 
@@ -554,11 +544,11 @@ void GameScene::Draw()
 			continue;
 		}
 
-		// íÔˆÈŠO‚ÌƒIƒuƒWƒFƒNƒgi’eA•ÇA‰ó‚¹‚é•Ç‚È‚Çj‚ğ•`‰æ
+
 		obj->Draw();
 	}
 
-	// íÔ‚ğÅŒã‚É•`‰æi©‹@‚Æ“G‚ªÅ‘O–Ê‚É•\¦‚³‚ê‚éj
+
 	if (playerPtr) {
 		playerPtr->Draw();
 	}

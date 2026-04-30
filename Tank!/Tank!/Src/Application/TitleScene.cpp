@@ -1,6 +1,7 @@
 #include "TitleScene.h"
 #include "GameScene.h"
 #include "SceneManager.h"
+#include "InputManager.h"
 
 void TitleScene::Init()
 {
@@ -129,7 +130,7 @@ void TitleScene::Update()
     }
 
     // --- ENTERでゲーム開始 ---
-    if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)
+    if (InputManager::GetInstance().IsMouseLeftPressed())
     {
         SceneManager::GetInstance().ChangeScene(new GameScene());
     }

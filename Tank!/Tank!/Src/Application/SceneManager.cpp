@@ -1,5 +1,6 @@
 #include "SceneManager.h"
 #include "TitleScene.h"
+#include "InputManager.h"
 
 void SceneManager::Init()
 {
@@ -8,6 +9,8 @@ void SceneManager::Init()
 
 void SceneManager::Update()
 {
+	InputManager::GetInstance().Update();
+
 	if (m_currentScene) {
 		m_currentScene->Update();
 	}
@@ -37,4 +40,6 @@ void SceneManager::ChangeScene(Scene* newScene)
 	}
 	m_currentScene = newScene;
 	m_currentScene->Init();
+	InputManager::GetInstance().OnSceneTransition();
 }
+

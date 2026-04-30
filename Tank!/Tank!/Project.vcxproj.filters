@@ -171,6 +171,12 @@
     <ClInclude Include="Src\Application\Hole.h">
       <Filter>Src\Application</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Application\ClearScene.h">
+      <Filter>Src\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Application\PauseScene.h" />
+    <ClInclude Include="Src\Application\InputManager.h" />
+    <ClInclude Include="Src\Application\CursorManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Pch.cpp">
@@ -260,12 +266,17 @@
     <ClCompile Include="Src\Application\Wall.cpp">
       <Filter>Src\Application</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Application\BreakableWall.cpp">
+    <ClCompile Include="Src\Application\ClearScene.cpp">
       <Filter>Src\Application</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Application\Hole.cpp">
+    <ClCompile Include="Src\Application\GameOverScene.cpp">
       <Filter>Src\Application</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Application\PauseScene.cpp" />
+    <ClCompile Include="Src\Application\InputManager.cpp" />
+    <ClCompile Include="Src\Application\BreakableWall.cpp" />
+    <ClCompile Include="Src\Application\Hole.cpp" />
+    <ClCompile Include="Src\Application\CursorManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="説明.txt" />

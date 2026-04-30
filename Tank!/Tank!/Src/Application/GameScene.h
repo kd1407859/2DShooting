@@ -26,6 +26,8 @@ class GameScene : public Scene
 
 	int m_score = 0;
 
+	bool m_isPaused = false;
+
 private:
 	int m_currentStage;
 public:
