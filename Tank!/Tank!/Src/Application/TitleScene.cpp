@@ -6,7 +6,7 @@
 void TitleScene::Init()
 {
     m_dirtTex.Load("Texture/Map/dirt.png");
-    m_wallTex.Load("Texture/Map/wall.png");
+    m_wallTex.Load("Texture/Map/crateMetal.png");
     m_titleTex.Load("Texture/Font/title_logo.png");
     m_pressEnterTex.Load("Texture/Font/press_click.png");
     m_enemyTexBrown.Load("Texture/Enemy/enemy_brown.png");
@@ -85,7 +85,7 @@ void TitleScene::Update()
     {
         for (auto& wall : m_walls)
         {
-            float radiusA = 24.0f;
+            float radiusA = 32.0f;
             float radiusB = 32.0f;
 
             float dx = wall->pos.x - tank->pos.x;

@@ -35,6 +35,9 @@ public:
 	int				m_fps = 0;					// 現在のFPS値
 	int				m_maxFps = 60;				// 最大FPS
 
+	// マウスカーソル用テクスチャ
+	KdTexture		m_cursorTex;
+
 
 private:
 

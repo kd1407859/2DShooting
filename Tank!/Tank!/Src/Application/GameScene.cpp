@@ -26,9 +26,9 @@ void GameScene::Init()
 	m_bulletTex.Load("Texture/Player/bullet.png");
 	m_enemyTexBrown.Load("Texture/Enemy/enemy_brown.png");
 	m_enemyTexAsh.Load("Texture/Enemy/enemy_ash.png");
-	m_wallTex.Load("Texture/Map/wall.png");
+	m_wallTex.Load("Texture/Map/crateMetal.png");
 	m_dirtTex.Load("Texture/Map/dirt.png");
-	m_breakableWallTex.Load("Texture/Map/breakwall.png");
+	m_breakableWallTex.Load("Texture/Map/crateWood.png");
 	m_holeTex.Load("Texture/Map/hole.png");
 
 	objList.clear();
@@ -46,7 +46,7 @@ void GameScene::Init()
 
 	std::ifstream file(fileName);
 
-
+	//マップチップの読み込み
 	if (file.is_open())
 	{
 		std::string line;
@@ -62,9 +62,9 @@ void GameScene::Init()
 				if (line[x] == '1') stageData[y][x] = 1;
 				else if (line[x] == '2') stageData[y][x] = 2;
 				else if (line[x] == '3') stageData[y][x] = 3;
-				else if (line[x] == '4') stageData[y][x] = 4; // �G�i�D�j
-				else if (line[x] == '5') stageData[y][x] = 5; // �󂹂��
-				else if (line[x] == '6') stageData[y][x] = 6; // ��
+				else if (line[x] == '4') stageData[y][x] = 4;
+				else if (line[x] == '5') stageData[y][x] = 5;
+				else if (line[x] == '6') stageData[y][x] = 6;
 			}
 			y++;
 		}
@@ -243,6 +243,7 @@ void GameScene::Update()
 		}
 	}
 
+	// オブジェクトの更新と敵の射撃処理
 	std::vector<std::shared_ptr<GameObject>> newObjects;
 
 	for (auto& obj : objList)
@@ -317,6 +318,7 @@ void GameScene::Update()
 		}
 	}
 
+	// 戦車と壁の当たり判定
 	for (auto& objA : objList) {
 		for (auto& objB : objList) {
 			if (objA == objB) continue;
@@ -329,7 +331,7 @@ void GameScene::Update()
 				std::dynamic_pointer_cast<Hole>(objB);
 
 			if (isTankA && isObstacleB) {
-				float radiusA = 24.0f;
+				float radiusA = 32.0f;
 				float radiusB = 32.0f; 
 
 				float dx = objB->pos.x - objA->pos.x;
@@ -365,7 +367,7 @@ void GameScene::Update()
 		}
 	}
 
-
+	// 障害物同士の当たり判定（壁、壊れる壁、穴）
 	for (auto& obj : objList) {
 
 		bool isObstacle = std::dynamic_pointer_cast<Wall>(obj) ||

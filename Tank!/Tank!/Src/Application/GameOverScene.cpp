@@ -19,7 +19,7 @@ void GameOverScene::Init()
     m_gameOverTex.Load("Texture/Font/gameover.png");
     m_pressEnterTex.Load("Texture/Font/press_click.png");
     m_dirtTex.Load("Texture/Map/dirt.png");
-    m_wallTex.Load("Texture/Map/wall.png");
+    m_wallTex.Load("Texture/Map/crateMetal.png");
 
     // 背景マップを読み込み（タイトル画面と同じ）
     std::ifstream file("Texture/Map/title.txt");

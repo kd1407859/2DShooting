@@ -19,8 +19,8 @@ void PauseScene::Init()
     m_pauseTex.Load("Texture/Font/pause.png");
     m_resumeTexture.Load("Texture/Font/press_click.png");
     m_dirtTex.Load("Texture/Map/dirt.png");
-    m_wallTex.Load("Texture/Map/wall.png");
-    m_breakableWallTex.Load("Texture/Map/breakwall.png");
+    m_wallTex.Load("Texture/Map/createMetal.png");
+    m_breakableWallTex.Load("Texture/Map/crateWood.png");
     m_holeTex.Load("Texture/Map/hole.png");
 
     // マップデータを初期化してからファイル読み込み

@@ -38,13 +38,13 @@ bool Application::Init(int w, int h)
 		return false;
 	}
 
+	// マウスカーソルを非表示にする
+	ShowCursor(FALSE);
+
 	//===================================================================
 	// フルスクリーン確認
 	//===================================================================
 	bool bFullScreen = false;
-	/*if (MessageBoxA(m_window.GetWndHandle(), "フルスクリーンにしますか？", "確認", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES) {
-		bFullScreen = true;
-	}*/
 
 
 	//===================================================================
@@ -71,6 +71,9 @@ bool Application::Init(int w, int h)
 
 	// シェーダー初期化
 	SHADER.Init();
+
+	// マウスカーソル用テクスチャ読み込み
+	m_cursorTex.Load("Texture/Player/pointer.png");
 
 	//===================================================================
 	// XAudio2
@@ -118,6 +121,9 @@ void Application::Release()
 
 	// シェーダ解放
 	SHADER.Release();
+
+	// マウスカーソルテクスチャ解放
+	m_cursorTex.Release();
 
 	// Direct3D解放
 	D3D.Release();
@@ -204,6 +210,25 @@ void Application::Execute()
 		// ゲーム描画処理
 		SHADER.m_spriteShader.Begin();
 		SCENE_MGR.Draw();
+		SHADER.m_spriteShader.End();
+
+		// マウスカーソル描画（最終段階で描画し、最前面に表示）
+		SHADER.m_spriteShader.Begin();
+
+		POINT mousePos;
+		GetCursorPos(&mousePos);
+		ScreenToClient(m_window.GetWndHandle(), &mousePos);
+
+		// マウス座標をゲーム座標に変換
+		float cursorX = (mousePos.x - SCREEN_WIDTH / 2.0f);
+		float cursorY = (SCREEN_HEIGHT / 2.0f - mousePos.y);
+
+		Math::Matrix cursorMat = Math::Matrix::CreateTranslation(cursorX, cursorY, 0.0f);
+		SHADER.m_spriteShader.SetMatrix(cursorMat);
+
+		Math::Rectangle cursorRect = { 0, 0, 64, 64 }; // pointer.pngのサイズに合わせて調整
+		SHADER.m_spriteShader.DrawTex(&m_cursorTex, -32, -32, &cursorRect); // カーソルの中心を揃える
+
 		SHADER.m_spriteShader.End();
 
 
