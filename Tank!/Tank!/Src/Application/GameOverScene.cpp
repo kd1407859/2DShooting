@@ -4,9 +4,9 @@
 #include "InputManager.h"
 #include "main.h"
 
-GameOverScene::GameOverScene(int score)
+GameOverScene::GameOverScene(int failedStage)
 {
-    m_finalScore = score;
+    m_failedStage = failedStage;
 }
 
 GameOverScene::~GameOverScene()
@@ -101,10 +101,6 @@ void GameOverScene::Draw()
         SHADER.m_spriteShader.DrawTex(&m_gameOverTex, 0, 0, &srcRect);
     }
 
-    // スコア表示
-    std::string scoreStr = "FINAL SCORE: " + std::to_string(m_finalScore);
-    SHADER.m_spriteShader.DrawString(-150, -50, scoreStr.c_str(), Math::Vector4(1, 0, 0, 1)); // 赤色
-
     // PRESS ENTER（点滅）
     if (m_blinkVisible)
     {
@@ -113,4 +109,8 @@ void GameOverScene::Draw()
         SHADER.m_spriteShader.SetMatrix(worldMat);
         SHADER.m_spriteShader.DrawTex(&m_pressEnterTex, 0, 0, &srcRect);
     }
+
+    // スコア表示
+ /* std::string scoreStr = "FINAL SCORE: " + std::to_string(m_finalScore);
+  SHADER.m_spriteShader.DrawString(-150, -50, scoreStr.c_str(), Math::Vector4(1, 0, 0, 1));*/
 }

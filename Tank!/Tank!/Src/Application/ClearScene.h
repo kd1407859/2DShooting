@@ -8,7 +8,7 @@ class ClearScene : public Scene
 	KdTexture m_dirtTex;
 	KdTexture m_wallTex;
 
-	int m_finalScore = 0;
+	int m_clearedStages = 0;
 	int m_blinkTimer = 0;
 	bool m_blinkVisible = true;
 
@@ -19,7 +19,7 @@ class ClearScene : public Scene
 
 public:
 
-	ClearScene(int score);
+	ClearScene(int stageNum);
 	~ClearScene();
 
 	void Init()    override;

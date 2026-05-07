@@ -164,6 +164,7 @@
     <ClInclude Include="Src\Application\ClearScene.h" />
     <ClInclude Include="Src\Application\CursorManager.h" />
     <ClInclude Include="Src\Application\Enemy.h" />
+    <ClInclude Include="Src\Application\Explosion.h" />
     <ClInclude Include="Src\Application\GameObject.h" />
     <ClInclude Include="Src\Application\GameOverScene.h" />
     <ClInclude Include="Src\Application\GameScene.h" />
@@ -174,6 +175,7 @@
     <ClInclude Include="Src\Application\Scene.h" />
     <ClInclude Include="Src\Application\main.h" />
     <ClInclude Include="Src\Application\SceneManager.h" />
+    <ClInclude Include="Src\Application\TransitionManager.h" />
     <ClInclude Include="Src\Application\TitleScene.h" />
     <ClInclude Include="Src\Application\Wall.h" />
     <ClInclude Include="Src\System\Audio\KdAudio.h" />
@@ -204,6 +206,7 @@
     <ClCompile Include="Src\Application\ClearScene.cpp" />
     <ClCompile Include="Src\Application\CursorManager.cpp" />
     <ClCompile Include="Src\Application\Enemy.cpp" />
+    <ClCompile Include="Src\Application\Explosion.cpp" />
     <ClCompile Include="Src\Application\GameObject.cpp" />
     <ClCompile Include="Src\Application\GameOverScene.cpp" />
     <ClCompile Include="Src\Application\GameScene.cpp" />
@@ -215,6 +218,7 @@
     <ClCompile Include="Src\Application\main.cpp" />
     <ClCompile Include="Src\Application\SceneManager.cpp" />
     <ClCompile Include="Src\Application\TitleScene.cpp" />
+    <ClCompile Include="Src\Application\TransitionManager.cpp" />
     <ClCompile Include="Src\Application\Wall.cpp" />
     <ClCompile Include="Src\System\Audio\KdAudio.cpp" />
     <ClCompile Include="src\System\Direct3D\KdDirect3D.cpp" />

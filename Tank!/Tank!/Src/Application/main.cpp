@@ -276,6 +276,14 @@ void Application::Execute()
 			count = 0;
 		}
 
+		//=========================================
+		//
+		// フレームレート制御
+		//
+		//=========================================
+		std::string titleBar = "Tank! FPS:" + std::to_string(m_fps);
+		SetWindowTextA(m_window.GetWndHandle(), titleBar.c_str());
+
 	}
 
 	// ゲーム解放

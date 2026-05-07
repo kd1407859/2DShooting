@@ -4,9 +4,9 @@
 #include "InputManager.h"
 #include "main.h"
 
-ClearScene::ClearScene(int score)
+ClearScene::ClearScene(int stageNum)
 {
-    m_finalScore = score;
+    m_clearedStages = stageNum;
 }
 
 ClearScene::~ClearScene()
@@ -19,7 +19,7 @@ void ClearScene::Init()
     m_clearTex.Load("Texture/Font/clear.png");
     m_pressEnterTex.Load("Texture/Font/press_click.png");
     m_dirtTex.Load("Texture/Map/dirt.png");
-    m_wallTex.Load("Texture/Map/wall.png");
+    m_wallTex.Load("Texture/Map/crateMetal.png");
 
     // マップデータを初期化してからファイル読み込み
     memset(m_backgroundMap, 0, sizeof(m_backgroundMap));
@@ -104,8 +104,8 @@ void ClearScene::Draw()
     }
 
     // スコア表示
-    std::string scoreStr = "FINAL SCORE: " + std::to_string(m_finalScore);
-    SHADER.m_spriteShader.DrawString(-150, -50, scoreStr.c_str(), Math::Vector4(0, 1, 0, 1));
+   /* std::string scoreStr = "FINAL SCORE: " + std::to_string(m_finalScore);
+    SHADER.m_spriteShader.DrawString(-150, -50, scoreStr.c_str(), Math::Vector4(0, 1, 0, 1));*/
 
     // PRESS CLICK（点滅）
     if (m_blinkVisible)

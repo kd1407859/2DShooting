@@ -5,6 +5,7 @@
 #include "Enemy.h"
 #include "Wall.h"
 #include "BreakableWall.h"
+#include "Explosion.h"
 #include "Hole.h"
 #include "Bullet.h"
 #include "SceneManager.h"
@@ -13,9 +14,52 @@
 #include "InputManager.h"
 #include "main.h"
 
+// 静的メンバ変数の初期化
+std::vector<std::shared_ptr<GameObject>> GameScene::s_savedObjList;
+std::shared_ptr<Player> GameScene::s_savedPlayer;
+int GameScene::s_savedScore = 0;
+int GameScene::s_savedShootTimer = 0;
+int GameScene::s_savedSpawnTimer = 0;
+bool GameScene::s_hasGameState = false;
+
+// テクスチャの静的メンバ変数の定義
+KdTexture GameScene::m_bulletTex;
+KdTexture GameScene::m_enemyTexBrown;
+KdTexture GameScene::m_enemyTexAsh;
+KdTexture GameScene::m_wallTex;
+KdTexture GameScene::m_dirtTex;
+KdTexture GameScene::m_holeTex;
+KdTexture GameScene::m_breakableWallTex;
+KdTexture GameScene::m_explosionTex;
+
 GameScene::GameScene(int stageNum)
 {
 	m_currentStage = stageNum;
+}
+
+// ゲーム状態の保存
+void GameScene::SaveGameState()
+{
+	s_savedObjList = objList;
+	s_savedPlayer = m_player;
+	s_savedScore = m_score;
+	s_savedShootTimer = m_shootTimer;
+	s_savedSpawnTimer = m_spawnTimer;
+	s_hasGameState = true;
+}
+
+// ゲーム状態の復元
+void GameScene::RestoreGameState()
+{
+	if (s_hasGameState)
+	{
+		objList = s_savedObjList;
+		m_player = s_savedPlayer;
+		m_score = s_savedScore;
+		m_shootTimer = s_savedShootTimer;
+		m_spawnTimer = s_savedSpawnTimer;
+		s_hasGameState = false;
+	}
 }
 
 void GameScene::Init()
@@ -30,6 +74,24 @@ void GameScene::Init()
 	m_dirtTex.Load("Texture/Map/dirt.png");
 	m_breakableWallTex.Load("Texture/Map/crateWood.png");
 	m_holeTex.Load("Texture/Map/hole.png");
+	m_explosionTex.Load("Texture/Effect/explosion.png");
+
+	// ポーズから復帰する場合、状態を復元
+	if (s_hasGameState)
+	{
+		RestoreGameState();
+		s_hasGameState = false;
+		return;
+	}
+	else
+	{
+		// 保存データがない（新規開始）の場合は通常の初期化を行います
+		m_player = std::make_shared<Player>();
+		objList.push_back(m_player);
+
+		// ステージ生成処理など
+		// LoadStage(m_currentStage); 
+	}
 
 	objList.clear();
 
@@ -72,7 +134,7 @@ void GameScene::Init()
 	}
 	else
 	{
-		SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score));
+		//SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score));
 		return;
 	}
 
@@ -80,7 +142,7 @@ void GameScene::Init()
 	m_player = std::make_shared<Player>();
 	objList.push_back(m_player);
 
-
+	// マップチップの配置
 	for (int y = 0; y < MAP_H; y++) {
 		for (int x = 0; x < MAP_W; x++) {
 
@@ -127,7 +189,20 @@ void GameScene::Update()
 	// Pキーでポーズ画面に遷移
 	if (InputManager::GetInstance().IsKeyPressed('P'))
 	{
-		SceneManager::GetInstance().ChangeScene(new PauseScene(m_currentStage));
+		// ゲーム状態を保存
+		SaveGameState();
+		
+		// 敵の種類別カウント
+		int brownCount = 0, ashCount = 0;
+		for (auto& obj : objList)
+		{
+			if (auto enemy = std::dynamic_pointer_cast<Enemy>(obj))
+			{
+				if (enemy->GetType() == EnemyType::Brown) brownCount++;
+				else                                       ashCount++;
+			}
+		}
+		SceneManager::GetInstance().ChangeScene(new PauseScene(m_currentStage, brownCount, ashCount));
 		return;
 	}
 
@@ -147,7 +222,7 @@ void GameScene::Update()
 		}
 	}
 
-	
+	// マウス左クリックで弾を発射
 	if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) && m_shootTimer <= 0 && playerBulletCount < MAX_PLAYER_BULLETS)
 	{
 		if (m_shootTimer <= 0)
@@ -185,6 +260,7 @@ void GameScene::Update()
 		}
 	}
 
+	// 敵の視線処理
 	for (auto& obj : objList) {
 		auto enemy = std::dynamic_pointer_cast<Enemy>(obj);
 		if (!enemy) continue;
@@ -203,13 +279,14 @@ void GameScene::Update()
 		float checkStep = 32.0f;
 		float currentDist = checkStep;
 
+		// プレイヤーまでの距離を超えるまで、一定間隔でレイをチェック
 		while (currentDist < distToPlayer) {
 			
 			Math::Vector2 checkPos = rayPos + diff * currentDist;
 
 			bool blocked = false;
 
-			
+			// 壁や壊れる壁があるかチェック
 			for (auto& obstacleObj : objList) {
 				auto wall = std::dynamic_pointer_cast<Wall>(obstacleObj);
 				if (wall) {
@@ -277,6 +354,7 @@ void GameScene::Update()
 		objList.push_back(newObj);
 	}
 
+	// 弾と壁の当たり判定
 	for (auto& obj1 : objList) {
 
 		std::shared_ptr<Bullet> bullet = std::dynamic_pointer_cast<Bullet>(obj1);
@@ -348,22 +426,6 @@ void GameScene::Update()
 				}
 			}
 
-
-			if (auto bullet = std::dynamic_pointer_cast<Bullet>(objA)) {
-
-
-				if (auto bWall = std::dynamic_pointer_cast<BreakableWall>(objB)) {
-					float dx = std::abs(bullet->pos.x - bWall->pos.x);
-					float dy = std::abs(bullet->pos.y - bWall->pos.y);
-					float hitRange = 40.0f;
-
-					if (dx < hitRange && dy < hitRange) {
-						bullet->isDead = true;
-						bWall->isDead = true;
-					}
-				}
-
-			}
 		}
 	}
 
@@ -379,7 +441,7 @@ void GameScene::Update()
 		}
 	}
 
-
+	// 弾と戦車の当たり判定
 	for (auto& objA : objList)
 	{
 		for (auto& objB : objList)
@@ -391,6 +453,7 @@ void GameScene::Update()
 
 			if (bullet)
 			{
+				// プレイヤーの弾が敵に当たった場合
 				if (bullet->isEnemy == false)
 				{
 					auto enemy = std::dynamic_pointer_cast<Enemy>(objB);
@@ -400,11 +463,11 @@ void GameScene::Update()
 							bullet->isDead = true;
 							enemy->isDead = true;
 
-							m_score += 100;
 						}
 					}
 				}
 
+				// 敵の弾がプレイヤーに当たった場合
 				if (bullet->isEnemy == true)
 				{
 					auto player = std::dynamic_pointer_cast<Player>(objB);
@@ -414,7 +477,7 @@ void GameScene::Update()
 							bullet->isDead = true;
 							player->isDead = true;
 
-							SceneManager::GetInstance().ChangeScene(new GameOverScene(m_score));
+							SceneManager::GetInstance().ChangeScene(new GameOverScene(m_currentStage));
 							return;
 						}
 					}
@@ -423,7 +486,7 @@ void GameScene::Update()
 		}
 	}
 
-
+	// 戦車同士の当たり判定
 	for (size_t i = 0; i < objList.size(); i++) {
 		for (size_t j = i + 1; j < objList.size(); j++) {
 			auto objA = objList[i];
@@ -443,8 +506,8 @@ void GameScene::Update()
 				float dist = std::sqrt(dx * dx + dy * dy);
 
 
-				float radiusA = 20.0f;
-				float radiusB = 20.0f;
+				float radiusA = 32.0f;
+				float radiusB = 32.0f;
 
 				if (dist > 0.0f && dist < (radiusA + radiusB)) {
 
@@ -465,7 +528,7 @@ void GameScene::Update()
 		}
 	}
 
-
+	// 弾と壊れる壁の当たり判定
 	for (auto& obj1 : objList) {
 		auto bullet = std::dynamic_pointer_cast<Bullet>(obj1);
 		if (!bullet) continue;
@@ -490,12 +553,35 @@ void GameScene::Update()
 		}
 	}
 
+	std::vector<std::shared_ptr<GameObject>> newExplosions; // 追加用リスト
+
+	for (auto& obj : objList)
+	{
+		if (obj->isDead)
+		{
+			// 壁・穴以外のオブジェクトか判定（Enemy, Player, Bulletなど）
+			if (std::dynamic_pointer_cast<Enemy>(obj) ||
+				std::dynamic_pointer_cast<Player>(obj) ||
+				std::dynamic_pointer_cast<Bullet>(obj))
+			{
+				// エフェクトを生成して追加用リストに入れておく
+				newExplosions.push_back(std::make_shared<Explosion>(obj->pos.x, obj->pos.y, &m_explosionTex));
+			}
+		}
+	}
+
+	// 死んだオブジェクトをリストから削除
 	auto it = std::remove_if(objList.begin(), objList.end(), [](std::shared_ptr<GameObject> obj) {
 		return obj->isDead;
 		});
 	objList.erase(it, objList.end());
 
+	for (auto& exp : newExplosions)
+	{
+		objList.push_back(exp);
+	}
 
+	// 敵の数をカウント
 	int enemyCount = 0;
 
 	for (auto& obj : objList) {
@@ -504,8 +590,17 @@ void GameScene::Update()
 		}
 	}
 
+	// 敵が全滅したら次のステージへ
 	if (enemyCount == 0) {
-		SceneManager::GetInstance().ChangeScene(new GameScene(m_currentStage + 1));
+		if (m_currentStage < MAX_STAGE) {
+			// まだ次のステージがある場合
+			SceneManager::GetInstance().ChangeScene(new GameScene(m_currentStage + 1));
+		}
+		else {
+			// 全ステージをクリアした場合
+			// 引数に現在のステージ数を渡してクリア画面へ
+			SceneManager::GetInstance().ChangeScene(new ClearScene(m_currentStage));
+		}
 		return;
 	}
 
@@ -559,7 +654,7 @@ void GameScene::Draw()
 		enemy->Draw();
 	}
 
-	std::string scoreStr = "SCORE: " + std::to_string(m_score);
+	//std::string scoreStr = "SCORE: " + std::to_string(m_score);
 
-	SHADER.m_spriteShader.DrawString(-600, 300, scoreStr.c_str(), Math::Vector4(1, 1, 1, 1));
+	//SHADER.m_spriteShader.DrawString(-600, 300, scoreStr.c_str(), Math::Vector4(1, 1, 1, 1));
 }

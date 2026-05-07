@@ -30,6 +30,7 @@ public:
 
 	Enemy(float x, float y, KdTexture* tex, EnemyType type, std::shared_ptr<Player> player);
 	
+	EnemyType GetType() const { return m_type; }
 
 	void Update() override;
 
